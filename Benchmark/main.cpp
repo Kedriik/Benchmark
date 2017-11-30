@@ -7,9 +7,9 @@ int main()
 	Benchmark m_benchmark;
 	m_benchmark.initWindow();
 	m_benchmark.initBuffers();
-
+	m_benchmark.launchLoop();
      cout << "Hello world" << endl;
-	 _getch();
+//	 _getch();
 	return 0;
 }
 

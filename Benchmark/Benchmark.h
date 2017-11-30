@@ -1,5 +1,4 @@
 #define GLM_SWIZZLE
-//#pragma once
 #include "glew-2.0.0\include\GL\glew.h"
 #include "glfw-3.2.1.bin.WIN64\include\GLFW\glfw3.h"
 #include "glm\glm\gtx\transform.hpp"
@@ -37,6 +36,9 @@ class Benchmark
 	GLuint Polygonizator;
 	////Tests objects////
 	GLuint ComputeShader;
+	GLuint VertexShader;
+	GLuint heightMapIndexBuffer;
+	vector<vec2> heightMapIndex;
 	////////////////////
 	GLuint VertexProgram, IndexBuffer;
 
@@ -52,15 +54,25 @@ class Benchmark
 		mat4 ProjectionMatrix;
 	} *constantData;
 	double loopTotalTime = 0;
-	int heightMapSize = 100;
+	int heightMapSize = 500;
 	Camera camera;
+	enum Test
+	{
+		VertexTest,
+		ComputeTest,
+		CPUTest
+	};
 public:
 	Benchmark();
-	void draw();
+	void draw(GLuint drawMode);
 	int initWindow(int width = 800, int height = 600);
 	void initBuffers();
 	void launchLoop();
 	void updateBuffers();
+	void generateHeightmapComputeShader();
+	void generateHeightmapVertexShader();
+	void generateHeigtmapCpu();
+	void polygonise();
 	~Benchmark();
 
 };
