@@ -49,7 +49,7 @@ void Benchmark::polygonise()
 	glUseProgram(Polygonizator);
 	glUniform1i(glGetUniformLocation(Polygonizator, "HeightMap"), 0);
 	glUniform1i(glGetUniformLocation(Polygonizator, "heightMapSize"), heightMapSize);
-	glDispatchCompute(heightMapSize, heightMapSize, 1);
+	glDispatchCompute(heightMapSize/10, heightMapSize/10, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
@@ -57,7 +57,7 @@ Benchmark::~Benchmark()
 {
 }
 
-int Benchmark::initWindow(int width , int height)
+int Benchmark::init(int width , int height)
 {
 	if (!glfwInit())
 	{
@@ -94,6 +94,8 @@ int Benchmark::initWindow(int width , int height)
 	vec3 camPos = vec3(0, 15.1211f, 0); vec3(51.2, 250, 51.2);
 	camera = Camera(window, width, height, camPos, vec3(0, -1, 0.0), vec3(1, 0, 0), 0.01);
 	camera.setSens(0.01f, 0.1f);
+
+	glEnable(GL_DEPTH_TEST);
 	return 1;
 }
 
@@ -193,8 +195,10 @@ void Benchmark::launchLoop()
 	ViewMatrix = camera.cameraPositionKeyboard(0);
 //	generateHeightmapComputeShader();
 //	generateHeightmapVertexShader();
-	polygonise();
-	Test test = Test::ComputeTest;
+	vector<vec4> hp;
+	
+//	polygonise();
+	Test test = Test::CPUTest;
 	GLuint drawMode = GL_FILL;
 	do
 	{
@@ -221,6 +225,18 @@ void Benchmark::launchLoop()
 		{
 			generateHeightmapComputeShader();
 		}
+		if (test == Test::CPUTest)
+		{
+			
+			hp.clear();
+			HeightMapGenerator::generateHeightMap(&hp, heightMapSize, loopTotalTime);
+			glBindTexture(GL_TEXTURE_2D, HeightMap);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, heightMapSize, heightMapSize, GL_RGBA, GL_FLOAT, hp.data());
+			/*glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, heightMapSize, heightMapSize, 0, GL_RGBA, GL_FLOAT,&hp[0]);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glGenerateMipmap(GL_TEXTURE_2D);*/
+		}
 		polygonise();
 		draw(drawMode);
 		///////////////
@@ -244,18 +260,19 @@ void Benchmark::updateBuffers()
 
 void Benchmark::generateHeightmapComputeShader()
 {
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
 	glBindImageTexture(0, HeightMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 	glUseProgram(ComputeShader);
 	glUniform1i(glGetUniformLocation(ComputeShader, "HeightMap"), 0);
 	glUniform1i(glGetUniformLocation(ComputeShader, "heightMapSize"), heightMapSize);
-	glDispatchCompute(heightMapSize, heightMapSize, 1);
+	glDispatchCompute(heightMapSize/10, heightMapSize/10, 1);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
 void Benchmark::generateHeightmapVertexShader()
 {
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
 	glBindImageTexture(0, HeightMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, heightMapIndexBuffer);
 	glUseProgram(VertexShader);
 	glUniform1i(glGetUniformLocation(VertexShader, "HeightMap"), 0);
 	glUniform1i(glGetUniformLocation(VertexShader, "heightMapSize"), heightMapSize);

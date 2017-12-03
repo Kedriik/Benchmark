@@ -1,4 +1,5 @@
 #define GLM_SWIZZLE
+
 #include "glew-2.0.0\include\GL\glew.h"
 #include "glfw-3.2.1.bin.WIN64\include\GLFW\glfw3.h"
 #include "glm\glm\gtx\transform.hpp"
@@ -18,6 +19,7 @@
 #include "windows.h"
 #include "glm\glm\glm.hpp"
 #include "camera.h"
+#include "HeightMapGenerator.h"
 using namespace glm;
 using namespace std;
 class Benchmark
@@ -54,7 +56,7 @@ class Benchmark
 		mat4 ProjectionMatrix;
 	} *constantData;
 	double loopTotalTime = 0;
-	int heightMapSize = 500;
+	int heightMapSize = 100;
 	Camera camera;
 	enum Test
 	{
@@ -62,10 +64,11 @@ class Benchmark
 		ComputeTest,
 		CPUTest
 	};
+
 public:
 	Benchmark();
 	void draw(GLuint drawMode);
-	int initWindow(int width = 800, int height = 600);
+	int init(int width = 800, int height = 600);
 	void initBuffers();
 	void launchLoop();
 	void updateBuffers();

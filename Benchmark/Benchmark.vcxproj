@@ -157,6 +157,7 @@
   <ItemGroup>
     <ClInclude Include="Benchmark.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="HeightMapGenerator.h" />
     <ClInclude Include="LoadShaders\include\LoadShaders.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

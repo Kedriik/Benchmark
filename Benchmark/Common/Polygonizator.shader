@@ -11,14 +11,14 @@ layout(std430, binding = 2) buffer IndexBuffer
 };
 
 layout (rgba32f)  uniform image2D HeightMap;
-layout( local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout( local_size_x = 10, local_size_y = 10, local_size_z = 1) in;
 uniform int heightMapSize;
 
 void main(void)
 {
     int  textureSize=heightMapSize;
-    uint  WGidY=(gl_WorkGroupID.y);
-    uint  WGidX=(gl_WorkGroupID.x);
+    uint  WGidY=gl_GlobalInvocationID.y;//(gl_WorkGroupID.y);
+    uint  WGidX=gl_GlobalInvocationID.x;//(gl_WorkGroupID.x);
     uint mapVBOOffset=0;//index*textureSize*textureSize;
     uint indexOffset=0;//6*index*textureSize*textureSize;
         VBO[WGidY*textureSize+WGidX+mapVBOOffset]=imageLoad(HeightMap, ivec2(WGidX, WGidY));
