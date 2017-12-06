@@ -250,7 +250,7 @@ static	float cnoise(vec4 P) {
 		float n_xyzw = mix(n_yzw.x, n_yzw.y, fade_xyzw.x);
 		return 2.2 * n_xyzw;
 	}
-	static void generateHeightMap(vector<vec4> *heightMap, int heightMapSize, double time)
+	static void generateHeightMap(vector<vec4> *heightMap, int heightMapSize, double time, int octaves=8)
 	{
 		for (int i = 0; i < heightMapSize; i++)
 		{
@@ -265,14 +265,13 @@ static	float cnoise(vec4 P) {
 				float f = 2;
 				float A = 0.1;
 				float h = 0;
-				int octaves = 10;
 				for (int i = 0; i<octaves; i++)
 				{
 					h += A*cnoise(vec4(f*vectorToStore.xyz, time));
 					A /= 2.0;
 					f *= 2.0;
 				}
-	//			h = 0;
+				cout << "\rGenerowanie ukonczone w " <<100.0f*float(heightMapSize*i + j)/(heightMapSize*heightMapSize)<<"%";
 				vectorToStore.y = h;
 				heightMap->push_back(vectorToStore);
 			}

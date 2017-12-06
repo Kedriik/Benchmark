@@ -11,7 +11,7 @@ layout(std430, binding = 2) buffer IndexBuffer
 };
 
 layout (rgba32f)  uniform image2D HeightMap;
-layout(location = 0) in vec2 heightMapIndex;
+layout( local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 uniform int heightMapSize;
 
 void main(void)

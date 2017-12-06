@@ -9,6 +9,7 @@ layout(std430, binding = 4) buffer PerFrame
 layout(location = 0) in vec2 heightMapIndex;
 layout (rgba32f)  uniform image2D HeightMap;
 uniform int heightMapSize;
+uniform int octaves;
 
 vec4 fade(vec4 t) {return t*t*t*(t*(t*6.0-15.0)+10.0);}
 vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
@@ -250,7 +251,6 @@ void main()
       float f=2;
       float A=0.1;
       float h=0;
-      int octaves=10;
       for(int i=0;i<octaves;i++)
       {
       	h+=A*cnoise(vec4(f*vectorToStore.xyz,time));

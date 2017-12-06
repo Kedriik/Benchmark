@@ -9,6 +9,7 @@ layout(std430, binding = 4) buffer PerFrame
 layout (rgba32f)  uniform image2D HeightMap;
 layout( local_size_x = 10, local_size_y = 10, local_size_z = 1) in;
 uniform int heightMapSize;
+uniform int octaves;
 
 
 vec4 fade(vec4 t) {return t*t*t*(t*(t*6.0-15.0)+10.0);}
@@ -246,19 +247,19 @@ void main (void)
       int  WGidX=int(gl_GlobalInvocationID.x);//int(gl_WorkGroupID.x);
       //double X;
       //double Z;
-      float X=float((WGidX-(heightMapSize-1)/2.0f)/float(heightMapSize-1));
-      float Z=float((WGidY-(heightMapSize-1)/2.0f)/float(heightMapSize-1));
+      float X=float((WGidX-float(heightMapSize-1)/2.0f)/float(heightMapSize-1));
+      float Z=float((WGidY-float(heightMapSize-1)/2.0f)/float(heightMapSize-1));
       vec4 vectorToStore=vec4(X, 0,Z,1);
       float f=2;
       float A=0.1;
       float h=0;
-      int octaves=10;
       for(int i=0;i<octaves;i++)
       {
         h+=A*cnoise(vec4(f*vectorToStore.xyz,time));
         A/=2.0;
         f*=2.0;
       }
+   //   h=4;
       vectorToStore.y=h;
       imageStore(HeightMap, ivec2(WGidX,WGidY),vectorToStore);
 }

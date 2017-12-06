@@ -35,7 +35,8 @@ void Benchmark::draw(GLuint drawMode)
 	);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBuffer);
 
-	glDrawElements(GL_TRIANGLES, 6*heightMapSize*heightMapSize, GL_UNSIGNED_INT, (void*)0);
+	glDrawElements(GL_TRIANGLES, 6*(heightMapSize)*(heightMapSize), GL_UNSIGNED_INT, (void*)0);
+	glDisableVertexAttribArray(0);
 }
 
 void Benchmark::polygonise()
@@ -49,8 +50,35 @@ void Benchmark::polygonise()
 	glUseProgram(Polygonizator);
 	glUniform1i(glGetUniformLocation(Polygonizator, "HeightMap"), 0);
 	glUniform1i(glGetUniformLocation(Polygonizator, "heightMapSize"), heightMapSize);
-	glDispatchCompute(heightMapSize/10, heightMapSize/10, 1);
+	glDispatchCompute(heightMapSize, heightMapSize, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+}
+
+void Benchmark::polygoniseVertex()
+{
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, VBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, IndexBuffer);
+
+
+	glBindImageTexture(0, HeightMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+	glUseProgram(VertexPolygonizator);
+	glUniform1i(glGetUniformLocation(VertexPolygonizator, "HeightMap"), 0);
+	glUniform1i(glGetUniformLocation(VertexPolygonizator, "heightMapSize"), heightMapSize);
+
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, heightMapIndexBuffer);
+	glVertexAttribPointer(
+		0,                  // attribute. No particular reason for 3, but must match the layout in the shader.
+		2,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+
+	glDrawArrays(GL_POINTS, 0, heightMapSize*heightMapSize);
+	glDisableVertexAttribArray(0);
 }
 
 Benchmark::~Benchmark()
@@ -111,7 +139,7 @@ void Benchmark::initBuffers()
 	RenderProgram = LoadShaders(RenderProgramSource);
 
 	ShaderInfo  PoligonizatorSource[] = {
-		{ GL_COMPUTE_SHADER, "Common\\Polygonizator.shader" },
+		{ GL_COMPUTE_SHADER, "Polygonizators\\Polygonizator.shader" },
 		{ GL_NONE, NULL },
 		{ GL_NONE, NULL },
 		{ GL_NONE, NULL },
@@ -137,6 +165,15 @@ void Benchmark::initBuffers()
 		{ GL_NONE, NULL }
 	};
 	VertexShader = LoadShaders(VertexProgramSource);
+
+	ShaderInfo  VertexPolygonizatorSource[] = {
+		{ GL_VERTEX_SHADER,  "Polygonizators\\PolygonizatorVertex.shader" },
+		{ GL_FRAGMENT_SHADER,"Polygonizators\\PassThroughFragment.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	VertexPolygonizator = LoadShaders(VertexPolygonizatorSource);
 	
 	for (int i = 0; i < heightMapSize; i++)
 	{
@@ -176,8 +213,7 @@ void Benchmark::initBuffers()
 	glGenTextures(1, &HeightMap);
 	glBindTexture(GL_TEXTURE_2D, HeightMap);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, heightMapSize, heightMapSize, 0, GL_RGBA, GL_FLOAT, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	
@@ -198,14 +234,14 @@ void Benchmark::launchLoop()
 	vector<vec4> hp;
 	
 //	polygonise();
-	Test test = Test::CPUTest;
+	
 	GLuint drawMode = GL_FILL;
 	do
 	{
 		static double lastTime = glfwGetTime();
 		double currentTime = glfwGetTime();
 		deltaTime = double(currentTime - lastTime);
-		if (deltaTime > stallTime) deltaTime = 0;
+	//	if (deltaTime > stallTime) deltaTime = 0;
 		loopTotalTime += deltaTime;
 		///////////////
 		ViewMatrix = camera.cameraPositionKeyboard(deltaTime);
@@ -220,24 +256,23 @@ void Benchmark::launchLoop()
 		if (test == Test::VertexTest)
 		{
 			generateHeightmapVertexShader();
+			polygoniseVertex();
 		}
 		if (test == Test::ComputeTest)
 		{
 			generateHeightmapComputeShader();
+			polygonise();
 		}
 		if (test == Test::CPUTest)
 		{
 			
 			hp.clear();
-			HeightMapGenerator::generateHeightMap(&hp, heightMapSize, loopTotalTime);
+			HeightMapGenerator::generateHeightMap(&hp, heightMapSize, loopTotalTime, octaves);
 			glBindTexture(GL_TEXTURE_2D, HeightMap);
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, heightMapSize, heightMapSize, GL_RGBA, GL_FLOAT, hp.data());
-			/*glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, heightMapSize, heightMapSize, 0, GL_RGBA, GL_FLOAT,&hp[0]);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glGenerateMipmap(GL_TEXTURE_2D);*/
+			polygoniseVertex();
 		}
-		polygonise();
+		
 		draw(drawMode);
 		///////////////
 		lastTime = currentTime;
@@ -265,6 +300,7 @@ void Benchmark::generateHeightmapComputeShader()
 	glUseProgram(ComputeShader);
 	glUniform1i(glGetUniformLocation(ComputeShader, "HeightMap"), 0);
 	glUniform1i(glGetUniformLocation(ComputeShader, "heightMapSize"), heightMapSize);
+	glUniform1i(glGetUniformLocation(ComputeShader, "octaves"), octaves);
 	glDispatchCompute(heightMapSize/10, heightMapSize/10, 1);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
@@ -276,6 +312,7 @@ void Benchmark::generateHeightmapVertexShader()
 	glUseProgram(VertexShader);
 	glUniform1i(glGetUniformLocation(VertexShader, "HeightMap"), 0);
 	glUniform1i(glGetUniformLocation(VertexShader, "heightMapSize"), heightMapSize);
+	glUniform1i(glGetUniformLocation(VertexShader, "octaves"), octaves);
 
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, heightMapIndexBuffer);

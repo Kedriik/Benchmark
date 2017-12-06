@@ -22,7 +22,8 @@
 #include "HeightMapGenerator.h"
 using namespace glm;
 using namespace std;
-class Benchmark
+//GENERATE HEIGHTMAP BENCHMARK
+class Benchmark 
 {
 	GLFWwindow *window;
 	mat4 ProjectionMatrix;
@@ -36,6 +37,7 @@ class Benchmark
 	GLuint ElementBuffer;
 	GLuint RenderProgram;
 	GLuint Polygonizator;
+	GLuint VertexPolygonizator;
 	////Tests objects////
 	GLuint ComputeShader;
 	GLuint VertexShader;
@@ -56,7 +58,8 @@ class Benchmark
 		mat4 ProjectionMatrix;
 	} *constantData;
 	double loopTotalTime = 0;
-	int heightMapSize = 100;
+	int heightMapSize = 500;
+	int octaves = 64;
 	Camera camera;
 	enum Test
 	{
@@ -64,7 +67,10 @@ class Benchmark
 		ComputeTest,
 		CPUTest
 	};
-
+#define Compute Test::ComputeTest
+#define Vertex Test::VertexTest
+#define CPU Test::CPUTest
+	Test test = Vertex;
 public:
 	Benchmark();
 	void draw(GLuint drawMode);
@@ -76,6 +82,7 @@ public:
 	void generateHeightmapVertexShader();
 	void generateHeigtmapCpu();
 	void polygonise();
+	void polygoniseVertex();
 	~Benchmark();
 
 };
