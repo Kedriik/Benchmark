@@ -243,10 +243,8 @@ float snoise(vec4 v){
 void main (void)
 { 
      
-      int  WGidY=int(gl_GlobalInvocationID.y);//int(gl_WorkGroupID.y);
-      int  WGidX=int(gl_GlobalInvocationID.x);//int(gl_WorkGroupID.x);
-      //double X;
-      //double Z;
+      int  WGidY=int(gl_GlobalInvocationID.y);
+      int  WGidX=int(gl_GlobalInvocationID.x);
       float X=float((WGidX-float(heightMapSize-1)/2.0f)/float(heightMapSize-1));
       float Z=float((WGidY-float(heightMapSize-1)/2.0f)/float(heightMapSize-1));
       vec4 vectorToStore=vec4(X, 0,Z,1);

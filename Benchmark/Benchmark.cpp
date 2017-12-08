@@ -130,8 +130,8 @@ int Benchmark::init(int width , int height)
 void Benchmark::initBuffers()
 {
 	ShaderInfo  RenderProgramSource[] = {
-		{ GL_VERTEX_SHADER,  "Common\\Vertex.shader" },
-		{ GL_FRAGMENT_SHADER,"Common\\Fragment.shader" },
+		{ GL_VERTEX_SHADER,  "HeightMapCommons\\Vertex.shader" },
+		{ GL_FRAGMENT_SHADER,"HeightMapCommons\\Fragment.shader" },
 		{ GL_NONE, NULL },
 		{ GL_NONE, NULL },
 		{ GL_NONE, NULL }

@@ -5,8 +5,502 @@
 BenchmarkVBO::BenchmarkVBO()
 {
 }
-
-
 BenchmarkVBO::~BenchmarkVBO()
 {
+}
+int BenchmarkVBO::init(int width, int height)
+{
+	if (!glfwInit())
+	{
+		fprintf(stderr, "Failed to initialize GLFW\n");
+		return -1;
+	}
+	std::cout << "GLFW init completed" << std::endl;
+
+
+
+	glfwWindowHint(GLFW_SAMPLES, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+	//	glfwWindowHint(GL_CONTEXT_FLAGS,GL_CONTEXT_FLAG_DEBUG_BIT);
+
+
+
+	window = glfwCreateWindow(width, height, "Benchmarks", NULL, NULL);
+	glfwMakeContextCurrent(window);
+
+	// Initialize GLEW
+	glewExperimental = true; // Needed for core profile
+	if (glewInit() != GLEW_OK) {
+		fprintf(stderr, "Failed to initialize GLEW\n");
+		return -1;
+	}
+	std::cout << "GLEW init completed" << std::endl;
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+	ProjectionMatrix = glm::infinitePerspective(45.0f, float(width) / float(height), 0.01f);
+
+
+	vec3 camPos = vec3(0, 15.1211f, 0); vec3(51.2, 250, 51.2);
+	camera = Camera(window, width, height, camPos, vec3(0, -1, 0.0), vec3(1, 0, 0), 0.01);
+	camera.setSens(0.01f, 10.1f);
+
+	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_ONE, GL_ONE);
+	return 1;
+}
+void BenchmarkVBO::initBuffers()
+{
+	ShaderInfo  RenderProgramSource[] = {
+		{ GL_VERTEX_SHADER,  "VBOBenchmarkCommons\\Vertex.shader" },
+		{ GL_FRAGMENT_SHADER,"VBOBenchmarkCommons\\Fragment.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	RenderProgram = LoadShaders(RenderProgramSource);
+
+	ShaderInfo  ComputePSource[] = {
+		{ GL_COMPUTE_SHADER, "VBOBenchmark\\ComputePosition.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	ComputePositionUpdate = LoadShaders(ComputePSource);
+
+	ShaderInfo  ComputeVSource[] = {
+		{ GL_COMPUTE_SHADER, "VBOBenchmark\\ComputeVelocity.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	ComputeVelocityUpdate = LoadShaders(ComputeVSource);
+
+	ShaderInfo VertexPSource[] = {
+		{ GL_VERTEX_SHADER, "VBOBenchmark\\VertexPosition.shader" },
+		{ GL_FRAGMENT_SHADER, "VBOBenchmark\\pass_through_fragment.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	VertexPositionUpdate = LoadShaders(VertexPSource);
+
+	ShaderInfo  VertexVSource[] = {
+		{ GL_VERTEX_SHADER, "VBOBenchmark\\VertexVelocity.shader" },
+		{ GL_FRAGMENT_SHADER, "VBOBenchmark\\pass_through_fragment.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	VertexVelocityUpdate = LoadShaders(VertexVSource);
+
+	for (int i = 0; i < count; i++)
+	{
+		indexes.push_back(i);
+	}
+	glGenBuffers(1, &IndexesBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexesBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(float), indexes.data(), GL_DYNAMIC_COPY);
+
+
+	vector<float> temp;
+	for (int i = 0; i < count; i++)
+	{
+		temp.push_back(0);
+	}
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, IndexesBuffer);
+	glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, count * sizeof(float), &temp[0]);
+	cout << "";
+
+	glGenBuffers(1, &PerFrameBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerFrameBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(struct perFrameData), NULL, GL_DYNAMIC_COPY);
+	perFrameData = (struct perFrameData *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(struct perFrameData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	glGenBuffers(1, &ConstantBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ConstantBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(struct constantData), NULL, GL_DYNAMIC_COPY);
+	constantData = (struct constantData *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(struct constantData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	constantData->ProjectionMatrix = ProjectionMatrix;
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	int size = count;
+	
+
+
+	glGenBuffers(1, &ParticlesBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ParticlesBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, count*sizeof(struct Particle), NULL, GL_DYNAMIC_COPY);
+	particles = (struct Particle *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, count*sizeof(struct Particle), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	for (int i=0 ; i < count; i++)
+	{
+		particles[i].acceleration = initialParticles.at(i).acceleration;
+		particles[i].density = initialParticles.at(i).density;
+		particles[i].mass = initialParticles.at(i).mass;
+		particles[i].velocity = initialParticles.at(i).velocity;
+	}
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, VBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, size * sizeof(vec4), particlesPositions.data(), GL_DYNAMIC_COPY);
+}
+void BenchmarkVBO::launchLoop()
+{
+	loopTotalTime = 0;
+	double deltaTime = 0;
+	double stallTime = 1.0;
+	camera.setPosition(vec3(0, 50, 0));
+	camera.setUp(vec3(1, 0, 0));
+	camera.setForward(vec3(0, -1, 0));
+	ViewMatrix = camera.cameraPositionKeyboard(0);
+	vector<vec4> hp;
+	GLuint drawMode = GL_FILL;
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	do
+	{
+		static double lastTime = glfwGetTime();
+		double currentTime = glfwGetTime();
+		deltaTime = double(currentTime - lastTime);
+		loopTotalTime += deltaTime;
+		///////////////
+		ViewMatrix = camera.cameraPositionKeyboard(deltaTime);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		updateBuffers();
+		drawMode = GL_FILL;
+		if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS)
+		{
+			drawMode = GL_LINE;
+		}
+		glPolygonMode(GL_FRONT_AND_BACK, drawMode);
+		if (test == Test::VertexTest)
+		{
+			updateParticlesVertexShader(deltaTime);
+		}
+		if (test == Test::ComputeTest)
+		{
+		//	glEnable(GL_DEPTH_TEST);
+			updateParticlesComputeShader(deltaTime);
+		}
+		if (test == Test::CPUTest)
+		{
+		}
+
+		draw(drawMode);
+		///////////////
+		lastTime = currentTime;
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+
+	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+		glfwWindowShouldClose(window) == 0);
+}
+void BenchmarkVBO::updateBuffers()
+{
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerFrameBuffer);
+	perFrameData = (struct perFrameData *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(struct perFrameData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	perFrameData->ViewMatrix = ViewMatrix;
+	perFrameData->time = loopTotalTime;
+	perFrameData->seed = vec3(0.0f);
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+}
+void BenchmarkVBO::updateParticlesComputeShader(double deltaTime)
+{
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ParticlesBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, VBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
+
+	glUseProgram(ComputeVelocityUpdate);
+	glUniform1f(glGetUniformLocation(ComputeVelocityUpdate, "deltaTime"), deltaTime);
+	glUniform1i(glGetUniformLocation(ComputeVelocityUpdate, "count"), count);
+	glDispatchCompute(1, count / 1024, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	glUseProgram(ComputePositionUpdate);
+	glUniform1f(glGetUniformLocation(ComputePositionUpdate, "deltaTime"), deltaTime);
+	glDispatchCompute(1, count / 1024, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}
+void BenchmarkVBO::updateParticlesVertexShader(double deltaTime)
+{
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ParticlesBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, VBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
+	
+	glUseProgram(VertexVelocityUpdate);
+	glUniform1f(glGetUniformLocation(VertexVelocityUpdate, "deltaTime"), deltaTime);
+	glUniform1i(glGetUniformLocation(VertexVelocityUpdate, "count"), count);
+
+	glEnableVertexAttribArray(3);
+	glBindBuffer(GL_ARRAY_BUFFER, IndexesBuffer);
+	glVertexAttribPointer(
+		3,                  // attribute. No particular reason for 3, but must match the layout in the shader.
+		1,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+
+
+	glDrawArrays(GL_POINTS, 0,count);
+	
+	glUseProgram(VertexPositionUpdate);
+	glUniform1f(glGetUniformLocation(VertexPositionUpdate, "deltaTime"), deltaTime);
+	
+	glEnableVertexAttribArray(3);
+	glBindBuffer(GL_ARRAY_BUFFER, IndexesBuffer);
+	glVertexAttribPointer(
+		3,                  // attribute. No particular reason for 3, but must match the layout in the shader.
+		1,                  // size
+		GL_FLOAT,	      // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+
+
+	glDrawArrays(GL_POINTS, 0, count);
+	glDisableVertexAttribArray(3);
+}
+void BenchmarkVBO::draw(GLuint drawMode)
+{
+	//glPointSize(2);
+	glUseProgram(RenderProgram);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ParticlesBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ConstantBuffer);
+
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glVertexAttribPointer(
+		0,                  // attribute. No particular reason for 3, but must match the layout in the shader.
+		4,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+
+
+	glDrawArrays(GL_POINTS, 0, count);
+	glDisableVertexAttribArray(0);
+}
+void BenchmarkVBO::initialsPartciles(int mode)
+{
+	if(mode==0)
+	{
+		for (int i = 0; i < count; i++)
+		{
+			particlesPositions.push_back(float(rand() % 200) / 10.0f*normalize(vec4(1000 - rand() % 2000, 1000 - rand() % 2000, 1000 - rand() % 2000, 1)));
+		}
+
+		for (int i = 0; i < count; i++)
+		{
+			Particle temp;
+			temp.acceleration = vec4(0.0);
+			temp.density = 1;
+			temp.index = -1;
+			temp.mass = 1;
+			temp.velocity = vec4(0.0);
+			initialParticles.push_back(temp);
+		}
+	}
+	if (mode == 1)
+	{
+		int factor = 10;
+		for (int i = 0; i < count/ factor; i++)
+		{
+			particlesPositions.push_back(float(rand() % 10) / 10.0f*normalize(vec4(1000 - rand() % 2000, 1000 - rand() % 2000, 1000 - rand() % 2000, 1)));
+		}
+
+		for (int i = 0; i < count/ factor; i++)
+		{
+			Particle temp;
+			temp.acceleration = vec4(0.0);
+			temp.density = 1;
+			temp.index = -1;
+			temp.mass = 1;
+			temp.velocity = vec4(0.0);
+			initialParticles.push_back(temp);
+		}
+
+		float mass = float(count) / float(factor);
+		for (int i = count / factor; i < count ; i++)
+		{
+			particlesPositions.push_back((1+(float(rand() % 100) / 10.0f))*normalize(vec4(1000 - rand() % 2000, 0, 1000 - rand() % 2000, 1)));
+		}
+
+		for (int i = count / factor; i < count ; i++)
+		{
+			Particle temp;
+			temp.acceleration = vec4(0.0);
+			temp.density = 1;
+			temp.index = -1;
+			temp.mass = 1;
+			float r = length(particlesPositions.at(i));
+			vec3 dir = cross(normalize(particlesPositions.at(i).xyz()), vec3(0, 1, 0));
+			float speed = 0.05*sqrt(0.1f*mass / r);
+			temp.velocity =  vec4(dir*speed, 0);
+
+			initialParticles.push_back(temp);
+		}
+	}
+
+	if (mode == 2)
+	{
+		int factor = 10;
+		for (int i = 0; i < count / factor; i++)
+		{
+			particlesPositions.push_back(float(rand() % 10) / 10.0f*normalize(vec4(1000 - rand() % 2000, 1000 - rand() % 2000, 1000 - rand() % 2000, 1)));
+		}
+
+
+		for (int i = 0; i < count / factor; i++)
+		{
+			Particle temp;
+			temp.acceleration = vec4(0.0);
+			temp.density = 1;
+			temp.index = -1;
+			temp.mass = 1;
+			temp.velocity = vec4(0.0);
+			initialParticles.push_back(temp);
+		}
+
+		float mass = float(count) / float(factor);
+		for (int i = count / factor; i < count; i++)
+		{
+			int q = rand() % 8;
+				 if(q==0)
+				particlesPositions.push_back(-(1 + (float(rand() % 100) / 10.0f))*normalize(vec4(1,0,0,1)));
+			else if( q==1)
+				particlesPositions.push_back((1 + (float(rand() % 100) / 10.0f))*normalize(vec4(1,0,0,1)));
+			else if (q == 2)
+				particlesPositions.push_back((1 + (float(rand() % 100) / 10.0f))*normalize(vec4(0, 0, -1, 1)));
+			else if (q == 3)
+				particlesPositions.push_back((1 + (float(rand() % 100) / 10.0f))*normalize(vec4(0, 0, 1, 1)));
+			else if (q == 4)
+				particlesPositions.push_back((1 + (float(rand() % 100) / 10.0f))*normalize(vec4(1, 0, 1, 1)));
+			else if (q == 5)
+				particlesPositions.push_back((1 + (float(rand() % 100) / 10.0f))*normalize(vec4(-1, 0, -1, 1)));
+			else if (q == 6)
+				particlesPositions.push_back((1 + (float(rand() % 100) / 10.0f))*normalize(vec4(-1, 0, 1, 1)));
+			else if (q == 7)
+				particlesPositions.push_back((1 + (float(rand() % 100) / 10.0f))*normalize(vec4(1, 0, -1, 1)));
+		}
+
+		for (int i = count / factor; i < count; i++)
+		{
+			Particle temp;
+			temp.acceleration = vec4(0.0);
+			temp.density = 1;
+			temp.index = -1;
+			temp.mass = 1;
+			float r = length(particlesPositions.at(i));
+			vec3 dir = cross(normalize(particlesPositions.at(i).xyz()), vec3(0, 1, 0));
+			float speed = 0.01*r*sqrt(0.1f*mass / r);
+			temp.velocity = vec4(dir*speed, 0);
+
+			initialParticles.push_back(temp);
+		}
+	}
+
+	if (mode == 3)
+	{
+	
+		//	count /= 2;
+			int _count = count / 2;
+			int factor = 10;
+			for (int i = 0; i < _count / factor; i++)
+			{
+				particlesPositions.push_back(float(rand() % 10) / 10.0f*normalize(vec4(1000 - rand() % 2000, 1000 - rand() % 2000, 1000 - rand() % 2000, 1)));
+			}
+
+			for (int i = 0; i < _count / factor; i++)
+			{
+				Particle temp;
+				temp.acceleration = vec4(0.0);
+				temp.density = 1;
+				temp.index = -1;
+				temp.mass = 1;
+				temp.velocity = vec4(0.0);
+				initialParticles.push_back(temp);
+			}
+
+			float mass = float(_count) / float(factor);
+			for (int i = _count / factor; i < _count; i++)
+			{
+				particlesPositions.push_back((1 + (float(rand() % 100) / 10.0f))*normalize(vec4(1000 - rand() % 2000, 0, 1000 - rand() % 2000, 1)));
+			}
+
+			for (int i = _count / factor; i < _count; i++)
+			{
+				Particle temp;
+				temp.acceleration = vec4(0.0);
+				temp.density = 1;
+				temp.index = -1;
+				temp.mass = 1;
+				float r = length(particlesPositions.at(i));
+				vec3 dir = cross(normalize(particlesPositions.at(i).xyz()), vec3(0, 1, 0));
+				float speed = 0.05*sqrt(0.1f*mass / r);
+				temp.velocity = vec4(dir*speed, 0);
+
+				initialParticles.push_back(temp);
+			}
+			for (int i = 0; i < _count; i++)
+			{
+				particlesPositions.at(i) += vec4(10, 0, 0, 0);
+			}
+			////////////
+
+			for (int i = 0; i < _count / factor; i++)
+			{
+				particlesPositions.push_back(float(rand() % 10) / 10.0f*normalize(vec4(1000 - rand() % 2000, 1000 - rand() % 2000, 1000 - rand() % 2000, 1)));
+			}
+
+			for (int i = 0; i < _count / factor; i++)
+			{
+				Particle temp;
+				temp.acceleration = vec4(0.0);
+				temp.density = 1;
+				temp.index = -1;
+				temp.mass = 1;
+				temp.velocity = vec4(0.0);
+				initialParticles.push_back(temp);
+			}
+
+		//	float mass = float(count) / float(factor);
+			for (int i = _count / factor; i < _count; i++)
+			{
+				particlesPositions.push_back((1 + (float(rand() % 100) / 10.0f))*normalize(vec4(1000 - rand() % 2000, 0, 1000 - rand() % 2000, 1)));
+			}
+
+			for (int i = _count / factor; i < _count; i++)
+			{
+				Particle temp;
+				temp.acceleration = vec4(0.0);
+				temp.density = 1;
+				temp.index = -1;
+				temp.mass = 1;
+				float r = length(particlesPositions.at(i));
+				vec3 dir = cross(normalize(particlesPositions.at(_count+i).xyz()), vec3(0, 1, 0));
+				float speed = 0.05*sqrt(0.1f*mass / r);
+				temp.velocity = vec4(dir*speed, 0);
+
+				initialParticles.push_back(temp);
+			}
+			for (int i = _count; i < 2* _count; i++)
+			{
+				particlesPositions.at(i) += vec4(-10, 0, 0, 0);
+				initialParticles.at(i).velocity += vec4(0.1, 0, 0, 1);
+			}
+		
+
+		
+	}
 }

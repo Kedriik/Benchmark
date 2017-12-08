@@ -58,8 +58,8 @@ class Benchmark
 		mat4 ProjectionMatrix;
 	} *constantData;
 	double loopTotalTime = 0;
-	int heightMapSize = 500;
-	int octaves = 64;
+	int heightMapSize = 100;
+	int octaves = 10;
 	Camera camera;
 	enum Test
 	{
@@ -70,7 +70,7 @@ class Benchmark
 #define Compute Test::ComputeTest
 #define Vertex Test::VertexTest
 #define CPU Test::CPUTest
-	Test test = Vertex;
+	Test test = CPU;
 public:
 	Benchmark();
 	void draw(GLuint drawMode);
