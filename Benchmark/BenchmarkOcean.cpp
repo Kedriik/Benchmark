@@ -1,0 +1,395 @@
+
+#include "BenchmarkOcean.h"
+
+
+BenchmarkOcean::BenchmarkOcean()
+{
+}
+
+void BenchmarkOcean::drawAndUpdate(GLuint drawMode)
+{
+	glUseProgram(UpdatingRenderProgram);
+	glUniform1i(glGetUniformLocation(UpdatingRenderProgram, "octaves"), octaves);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ConstantBuffer);
+	//
+	//glEnableVertexAttribArray(2);
+	//glBindBuffer(GL_ARRAY_BUFFER, NormalBuffer);
+	//glVertexAttribPointer(
+	//	2,                  // attribute. No particular reason for 2, but must match the layout in the shader.
+	//	4,                  // size
+	//	GL_FLOAT,           // type
+	//	GL_FALSE,           // normalized?
+	//	0,                  // stride
+	//	(void*)0            // array buffer offset
+	//);
+	//Draw array
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glVertexAttribPointer(
+		0,                  // attribute. No particular reason for 3, but must match the layout in the shader.
+		4,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBuffer);
+
+	glDrawElements(GL_TRIANGLES, 6 * (heightMapSize)*(heightMapSize), GL_UNSIGNED_INT, (void*)0);
+	glDisableVertexAttribArray(0);
+}
+
+void BenchmarkOcean::draw(GLuint drawMode)
+{
+
+	glUseProgram(RenderProgram);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ConstantBuffer);
+	//
+	//glEnableVertexAttribArray(2);
+	//glBindBuffer(GL_ARRAY_BUFFER, NormalBuffer);
+	//glVertexAttribPointer(
+	//	2,                  // attribute. No particular reason for 2, but must match the layout in the shader.
+	//	4,                  // size
+	//	GL_FLOAT,           // type
+	//	GL_FALSE,           // normalized?
+	//	0,                  // stride
+	//	(void*)0            // array buffer offset
+	//);
+	//Draw array
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glVertexAttribPointer(
+		0,                  // attribute. No particular reason for 3, but must match the layout in the shader.
+		4,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBuffer);
+
+	glDrawElements(GL_TRIANGLES, 6 * (heightMapSize)*(heightMapSize), GL_UNSIGNED_INT, (void*)0);
+	glDisableVertexAttribArray(0);
+}
+
+void BenchmarkOcean::polygonise()
+{
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, VBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, IndexBuffer);
+
+
+	glBindImageTexture(0, HeightMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+	glUseProgram(Polygonizator);
+	glUniform1i(glGetUniformLocation(Polygonizator, "HeightMap"), 0);
+	glUniform1i(glGetUniformLocation(Polygonizator, "heightMapSize"), heightMapSize);
+	glDispatchCompute(heightMapSize, heightMapSize, 1);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+}
+
+void BenchmarkOcean::polygoniseVertex()
+{
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, VBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, IndexBuffer);
+
+
+	glBindImageTexture(0, HeightMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+	glUseProgram(VertexPolygonizator);
+	glUniform1i(glGetUniformLocation(VertexPolygonizator, "HeightMap"), 0);
+	glUniform1i(glGetUniformLocation(VertexPolygonizator, "heightMapSize"), heightMapSize);
+
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, heightMapIndexBuffer);
+	glVertexAttribPointer(
+		0,                  // attribute. No particular reason for 3, but must match the layout in the shader.
+		2,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+
+	glDrawArrays(GL_POINTS, 0, heightMapSize*heightMapSize);
+	glDisableVertexAttribArray(0);
+}
+
+BenchmarkOcean::~BenchmarkOcean()
+{
+}
+
+int BenchmarkOcean::init(int width, int height)
+{
+	if (!glfwInit())
+	{
+		fprintf(stderr, "Failed to initialize GLFW\n");
+		return -1;
+	}
+	std::cout << "GLFW init completed" << std::endl;
+
+
+
+	glfwWindowHint(GLFW_SAMPLES, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+	//	glfwWindowHint(GL_CONTEXT_FLAGS,GL_CONTEXT_FLAG_DEBUG_BIT);
+
+
+
+	window = glfwCreateWindow(width, height, "Benchmarks", NULL, NULL);
+	glfwMakeContextCurrent(window);
+
+	// Initialize GLEW
+	glewExperimental = true; // Needed for core profile
+	if (glewInit() != GLEW_OK) {
+		fprintf(stderr, "Failed to initialize GLEW\n");
+		return -1;
+	}
+	std::cout << "GLEW init completed" << std::endl;
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+	ProjectionMatrix = glm::infinitePerspective(45.0f, float(width) / float(height), 0.01f);
+
+
+	vec3 camPos = vec3(0, 15.1211f, 0); vec3(51.2, 250, 51.2);
+	camera = Camera(window, width, height, camPos, vec3(0, -1, 0.0), vec3(1, 0, 0), 0.01);
+	camera.setSens(0.01f, 0.1f);
+
+	glEnable(GL_DEPTH_TEST);
+	return 1;
+}
+
+void BenchmarkOcean::initBuffers()
+{
+	ShaderInfo  UpdatingRenderProgramSource[] = {
+		{ GL_VERTEX_SHADER,  "OceanBenchmarkCommons\\UpdatingVertex.shader" },
+		{ GL_FRAGMENT_SHADER,"OceanBenchmarkCommons\\Fragment.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	UpdatingRenderProgram = LoadShaders(UpdatingRenderProgramSource);
+
+	ShaderInfo RenderProgramSource[] = {
+		{ GL_VERTEX_SHADER,  "OceanBenchmarkCommons\\Vertex.shader" },
+		{ GL_FRAGMENT_SHADER,"OceanBenchmarkCommons\\Fragment.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	RenderProgram = LoadShaders(RenderProgramSource);
+
+	ShaderInfo  PoligonizatorSource[] = {
+		{ GL_COMPUTE_SHADER, "Polygonizators\\Polygonizator.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	Polygonizator = LoadShaders(PoligonizatorSource);
+
+	ShaderInfo  ComputeSource[] = {
+		{ GL_COMPUTE_SHADER, "OceanBenchmarks\\Compute.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	ComputeShader = LoadShaders(ComputeSource);
+
+	ShaderInfo  FlatSource[] = {
+		{ GL_COMPUTE_SHADER, "OceanBenchmarks\\Flat.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	FlatShader = LoadShaders(FlatSource);
+
+
+	ShaderInfo  VertexProgramSource[] = {
+		{ GL_VERTEX_SHADER,  "OceanBenchmarks\\Vertex.shader" },
+		{ GL_FRAGMENT_SHADER,"OceanBenchmarks\\PassThroughFragment.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	VertexShader = LoadShaders(VertexProgramSource);
+
+	ShaderInfo  VertexPolygonizatorSource[] = {
+		{ GL_VERTEX_SHADER,  "Polygonizators\\PolygonizatorVertex.shader" },
+		{ GL_FRAGMENT_SHADER,"Polygonizators\\PassThroughFragment.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	VertexPolygonizator = LoadShaders(VertexPolygonizatorSource);
+
+	for (int i = 0; i < heightMapSize; i++)
+	{
+		for (int j = 0; j < heightMapSize; j++)
+		{
+			heightMapIndex.push_back(vec2(i, j));
+		}
+	}
+
+	glGenBuffers(1, &heightMapIndexBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, heightMapIndexBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, heightMapSize*heightMapSize * sizeof(vec2), heightMapIndex.data(), GL_DYNAMIC_COPY);
+
+	glGenBuffers(1, &PerFrameBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerFrameBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(struct perFrameData), NULL, GL_DYNAMIC_COPY);
+	perFrameData = (struct perFrameData *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(struct perFrameData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	glGenBuffers(1, &ConstantBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ConstantBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(struct constantData), NULL, GL_DYNAMIC_COPY);
+	constantData = (struct constantData *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(struct constantData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	constantData->ProjectionMatrix = ProjectionMatrix;
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	int indexSize = 6 * (heightMapSize)*(heightMapSize);
+	int size = heightMapSize*heightMapSize;
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, VBO);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, size * sizeof(vec4), NULL, GL_DYNAMIC_COPY);
+
+	glGenBuffers(1, &IndexBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexSize * sizeof(unsigned int), NULL, GL_DYNAMIC_COPY);
+
+	glGenTextures(1, &HeightMap);
+	glBindTexture(GL_TEXTURE_2D, HeightMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, heightMapSize, heightMapSize, 0, GL_RGBA, GL_FLOAT, 0);
+
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+
+
+}
+
+void BenchmarkOcean::launchLoop()
+{
+	loopTotalTime = 0;
+	double deltaTime = 0;
+	double stallTime = 1.0;
+	camera.setPosition(vec3(0, 1, 0));
+	camera.setUp(vec3(1, 0, 0));
+	camera.setForward(vec3(0, -1, 0));
+	ViewMatrix = camera.cameraPositionKeyboard(0);
+	//	generateHeightmapComputeShader();
+	//	generateHeightmapVertexShader();
+	vector<vec4> hp;
+	generateFlat();
+	polygonise();
+
+	GLuint drawMode = GL_FILL;
+	do
+	{
+		static double lastTime = glfwGetTime();
+		double currentTime = glfwGetTime();
+		deltaTime = double(currentTime - lastTime);
+		//	if (deltaTime > stallTime) deltaTime = 0;
+		loopTotalTime += deltaTime;
+		///////////////
+		ViewMatrix = camera.cameraPositionKeyboard(deltaTime);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		updateBuffers();
+		drawMode = GL_FILL;
+		if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS)
+		{
+			drawMode = GL_LINE;
+		}
+		glPolygonMode(GL_FRONT_AND_BACK, drawMode);
+		if (test == Test::VertexTest)
+		{
+			drawAndUpdate(drawMode);
+		}
+		if (test == Test::ComputeTest)
+		{
+			generateHeightmapComputeShader();
+			draw(drawMode);
+		}
+		if (test == Test::CPUTest)
+		{
+			/*
+			hp.clear();
+			HeightMapGenerator::generateHeightMap(&hp, heightMapSize, loopTotalTime, octaves);
+			glBindTexture(GL_TEXTURE_2D, HeightMap);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, heightMapSize, heightMapSize, GL_RGBA, GL_FLOAT, hp.data());
+			polygoniseVertex();*/
+		}
+
+
+		///////////////
+		lastTime = currentTime;
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+
+	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+		glfwWindowShouldClose(window) == 0);
+}
+
+void BenchmarkOcean::updateBuffers()
+{
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerFrameBuffer);
+	perFrameData = (struct perFrameData *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(struct perFrameData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	perFrameData->ViewMatrix = ViewMatrix;
+	perFrameData->time = loopTotalTime;
+	perFrameData->seed = vec3(0.0f);
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+}
+
+void BenchmarkOcean::generateHeightmapComputeShader()
+{
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, VBO);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
+	glBindImageTexture(0, HeightMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	glUseProgram(ComputeShader);
+	glUniform1i(glGetUniformLocation(ComputeShader, "heightMapSize"), heightMapSize);
+	glUniform1i(glGetUniformLocation(ComputeShader, "octaves"), octaves);
+	glDispatchCompute(1, (heightMapSize*heightMapSize) / 1024+1, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}
+
+void BenchmarkOcean::generateHeightmapVertexShader()
+{
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
+	glBindImageTexture(0, HeightMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	glUseProgram(VertexShader);
+	glUniform1i(glGetUniformLocation(VertexShader, "HeightMap"), 0);
+	glUniform1i(glGetUniformLocation(VertexShader, "heightMapSize"), heightMapSize);
+	glUniform1i(glGetUniformLocation(VertexShader, "octaves"), octaves);
+
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, heightMapIndexBuffer);
+	glVertexAttribPointer(
+		0,                  // attribute. No particular reason for 3, but must match the layout in the shader.
+		2,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+
+	glDrawArrays(GL_POINTS, 0, heightMapSize*heightMapSize);
+	glDisableVertexAttribArray(0);
+
+}
+
+void BenchmarkOcean::generateFlat()
+{
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
+	glBindImageTexture(0, HeightMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	glUseProgram(FlatShader);
+	glUniform1i(glGetUniformLocation(FlatShader, "HeightMap"), 0);
+	glUniform1i(glGetUniformLocation(FlatShader, "heightMapSize"), heightMapSize);
+	glUniform1i(glGetUniformLocation(FlatShader, "octaves"), octaves);
+	glDispatchCompute(heightMapSize / 10, heightMapSize / 10, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}

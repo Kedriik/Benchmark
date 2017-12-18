@@ -229,6 +229,105 @@ glm::mat4 cameraPositionKeyboard(double deltaTime)
 			
 	return viewMatrix;
 }
+glm::mat4 cameraPositionKeyboard(double deltaTime, bool *updated)
+{
+	float xrot = 0, yrot = 0, zrot = 0, x = 0, y = 0, z = 0;
+
+
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+	{
+		zrot = 1;
+		*updated = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+	{
+		zrot = -1;
+		*updated = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+	{
+		xrot = 1;
+		*updated = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+	{
+		xrot = -1;
+		*updated = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+	{
+		yrot = 1;
+		*updated = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+	{
+		yrot = -1;
+		*updated = true;
+	}
+
+
+	/////////////////////
+
+
+	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+	{
+		x += forward.x;
+		y += forward.y;
+		z += forward.z;
+		*updated = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+	{
+		x -= forward.x;
+		y -= forward.y;
+		z -= forward.z;
+		*updated = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+	{
+		x -= right.x;
+		y -= right.y;
+		z -= right.z;
+		*updated = true;
+	}
+
+
+	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+	{
+		x += right.x;
+		y += right.y;
+		z += right.z;
+		*updated = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+	{
+		x -= up.x;
+		y -= up.y;
+		z -= up.z;
+		*updated = true;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
+	{
+		x += up.x;
+		y += up.y;
+		z += up.z;
+		*updated = true;
+	}
+
+
+	updateCamera(xrot, yrot, zrot, x, y, z, deltaTime);
+
+
+	return viewMatrix;
+}
 glm::mat4 cameraPositionMouse(double deltaTime)
 {
 	float xrot=0,yrot=0,zrot=0,x=0,y=0,z=0;

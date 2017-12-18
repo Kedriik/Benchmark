@@ -151,12 +151,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Benchmark.cpp" />
+    <ClCompile Include="BenchmarkOcean.cpp" />
     <ClCompile Include="BenchmarkVBO.cpp" />
     <ClCompile Include="LoadShaders\lib\LoadShaders.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Benchmark.h" />
+    <ClInclude Include="BenchmarkOcean.h" />
     <ClInclude Include="BenchmarkVBO.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="HeightMapGenerator.h" />

@@ -1,0 +1,15 @@
+#version 430// compatibility
+
+in vec2 UV;
+
+out vec4 color;
+
+uniform sampler2D Color;
+
+void main(){
+
+  vec3 Diffuse   = texture(Color, UV).rgb;
+
+  color=vec4(Diffuse,1);
+
+}

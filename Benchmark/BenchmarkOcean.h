@@ -19,46 +19,35 @@
 #include "windows.h"
 #include "glm\glm\glm.hpp"
 #include "camera.h"
+//#include "HeightMapGenerator.h"
 using namespace glm;
 using namespace std;
 //GENERATE HEIGHTMAP BENCHMARK
-class BenchmarkVBO
+class BenchmarkOcean
 {
 	GLFWwindow *window;
 	mat4 ProjectionMatrix;
 	mat4 ViewMatrix;
-	GLuint DefaultFrameBuffer=1;
-	GLuint ColorTexture;
-	GLuint RenderShaders;
-	GLuint quad_vertexbuffer;
-	GLuint UV;
-	int width, height;
 	//Common buffers//
 	GLuint VBO;
-	
+	vector<vec4> vertices;
+	GLuint HeightMap;
 	GLuint PerFrameBuffer;
 	GLuint ConstantBuffer;
+	GLuint ElementBuffer;
+	GLuint UpdatingRenderProgram;
 	GLuint RenderProgram;
-	GLuint ParticlesBuffer;
-	struct Particle
-	{
-		vec4 velocity;
-		vec4 acceleration;
-		float mass = 1;
-		float density = 0;
-		int index;
-		int tab;
-	} *particles;
-
-	vector<Particle> initialParticles;
-	vector<vec4> particlesPositions;
+	GLuint Polygonizator;
+	GLuint VertexPolygonizator;
+	GLuint FlatShader;
 	////Tests objects////
-	GLuint ComputePositionUpdate;
-	GLuint ComputeVelocityUpdate;
-	GLuint VertexPositionUpdate;
-	GLuint VertexVelocityUpdate;
-	GLuint IndexesBuffer;
-	vector<float> indexes;
+	GLuint ComputeShader;
+	GLuint VertexShader;
+	GLuint heightMapIndexBuffer;
+	vector<vec2> heightMapIndex;
+	////////////////////
+	GLuint VertexProgram, IndexBuffer;
+
 	struct perFrameData
 	{
 		mat4 ViewMatrix;
@@ -71,7 +60,8 @@ class BenchmarkVBO
 		mat4 ProjectionMatrix;
 	} *constantData;
 	double loopTotalTime = 0;
-	int count = 10240;
+	int heightMapSize = 100;
+	int octaves = 10;
 	Camera camera;
 	enum Test
 	{
@@ -82,18 +72,22 @@ class BenchmarkVBO
 #define Compute Test::ComputeTest
 #define Vertex Test::VertexTest
 #define CPU Test::CPUTest
-	Test test = Vertex;
+	Test test = Compute;
 public:
-	BenchmarkVBO();
+	BenchmarkOcean();
+	void drawAndUpdate(GLuint drawMode);
 	void draw(GLuint drawMode);
-	void drawRendererOutputs();
-	void initialsPartciles(int mode = 0);
 	int init(int width = 800, int height = 600);
 	void initBuffers();
 	void launchLoop();
 	void updateBuffers();
-	void updateParticlesComputeShader(double deltaTime);
-	void updateParticlesVertexShader(double deltaTime);
-	~BenchmarkVBO();
+	void generateHeightmapComputeShader();
+	void generateHeightmapVertexShader();
+	void generateFlat();
+	void generateHeigtmapCpu();
+	void polygonise();
+	void polygoniseVertex();
+	~BenchmarkOcean();
+
 };
 

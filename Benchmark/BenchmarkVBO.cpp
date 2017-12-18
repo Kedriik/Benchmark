@@ -8,8 +8,10 @@ BenchmarkVBO::BenchmarkVBO()
 BenchmarkVBO::~BenchmarkVBO()
 {
 }
-int BenchmarkVBO::init(int width, int height)
+int BenchmarkVBO::init(int _width, int _height)
 {
+	width = _width;
+	height = _height;
 	if (!glfwInit())
 	{
 		fprintf(stderr, "Failed to initialize GLFW\n");
@@ -105,16 +107,20 @@ void BenchmarkVBO::initBuffers()
 	glGenBuffers(1, &IndexesBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexesBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(float), indexes.data(), GL_DYNAMIC_COPY);
-
-
-	vector<float> temp;
-	for (int i = 0; i < count; i++)
+	
+	vector<vec2> _UV;
+	for (int i = 0; i < height; i++)
 	{
-		temp.push_back(0);
+		for (int j = 0; j < width; j++)
+		{
+			_UV.push_back(vec2(i, j));
+		}
 	}
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, IndexesBuffer);
-	glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, count * sizeof(float), &temp[0]);
-	cout << "";
+	glGenBuffers(1, &UV);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, UV);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, width*height * sizeof(vec2), _UV.data(), GL_DYNAMIC_COPY);
+
+
 
 	glGenBuffers(1, &PerFrameBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerFrameBuffer);
@@ -149,6 +155,47 @@ void BenchmarkVBO::initBuffers()
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, VBO);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, size * sizeof(vec4), particlesPositions.data(), GL_DYNAMIC_COPY);
+	
+	glGenFramebuffers(1, &DefaultFrameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, DefaultFrameBuffer);
+
+	// - Color 
+	glGenTextures(1, &ColorTexture);
+	glBindTexture(GL_TEXTURE_2D, ColorTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ColorTexture, 0);
+
+	GLuint attachments[1] = { GL_COLOR_ATTACHMENT0 };// , GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4};
+	glDrawBuffers(1, attachments);
+	
+	static const GLfloat g_quad_vertex_buffer_data[] = {
+		-1.0f, -1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,
+		1.0f,  1.0f, 0.0f
+	};
+
+
+	glGenBuffers(1, &quad_vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
+	std::vector<glm::vec3> vertices;
+
+
+
+	ShaderInfo  shadersExpRender[] = {
+		{ GL_VERTEX_SHADER,  "RendererShaders\\Passthrough.vertexshader" },
+		{ GL_FRAGMENT_SHADER,"RendererShaders\\Renderer.fragmentshader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	RenderShaders = LoadShaders(shadersExpRender);
 }
 void BenchmarkVBO::launchLoop()
 {
@@ -161,7 +208,7 @@ void BenchmarkVBO::launchLoop()
 	ViewMatrix = camera.cameraPositionKeyboard(0);
 	vector<vec4> hp;
 	GLuint drawMode = GL_FILL;
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	double iddleTime = 0;
 	do
 	{
 		static double lastTime = glfwGetTime();
@@ -169,8 +216,22 @@ void BenchmarkVBO::launchLoop()
 		deltaTime = double(currentTime - lastTime);
 		loopTotalTime += deltaTime;
 		///////////////
-		ViewMatrix = camera.cameraPositionKeyboard(deltaTime);
+		bool updated = false;
+		ViewMatrix = camera.cameraPositionKeyboard(deltaTime, &updated);
+		glBindFramebuffer(GL_FRAMEBUFFER, DefaultFrameBuffer);
+		/*
+		if(updated == true )
+		{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		iddleTime = 0;
+		}
+		else iddleTime += deltaTime;
+		if(iddleTime<0.5) glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		*/
+		if (glfwGetKey(window, GLFW_KEY_SPACE) != GLFW_PRESS)
+		{
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		}
 		updateBuffers();
 		drawMode = GL_FILL;
 		if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS)
@@ -192,6 +253,10 @@ void BenchmarkVBO::launchLoop()
 		}
 
 		draw(drawMode);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//		glClear(GL_DEPTH_BUFFER_BIT);
+		drawRendererOutputs();
 		///////////////
 		lastTime = currentTime;
 		glfwSwapBuffers(window);
@@ -270,7 +335,7 @@ void BenchmarkVBO::updateParticlesVertexShader(double deltaTime)
 }
 void BenchmarkVBO::draw(GLuint drawMode)
 {
-	//glPointSize(2);
+	glPointSize(1);
 	glUseProgram(RenderProgram);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ParticlesBuffer);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
@@ -290,6 +355,27 @@ void BenchmarkVBO::draw(GLuint drawMode)
 
 	glDrawArrays(GL_POINTS, 0, count);
 	glDisableVertexAttribArray(0);
+}
+void BenchmarkVBO::drawRendererOutputs()
+{
+	glUseProgram(RenderShaders);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, ColorTexture);
+	glUniform1i(glGetUniformLocation(RenderShaders, "Color"), 0);
+	glEnableVertexAttribArray(11);
+	glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+	glVertexAttribPointer(
+		11,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+		3,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+
+	// Draw the triangles !
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glDisableVertexAttribArray(11);
 }
 void BenchmarkVBO::initialsPartciles(int mode)
 {
@@ -403,7 +489,7 @@ void BenchmarkVBO::initialsPartciles(int mode)
 			temp.mass = 1;
 			float r = length(particlesPositions.at(i));
 			vec3 dir = cross(normalize(particlesPositions.at(i).xyz()), vec3(0, 1, 0));
-			float speed = 0.01*r*sqrt(0.1f*mass / r);
+			float speed = 0.015*r*sqrt(0.1f*mass / r);
 			temp.velocity = vec4(dir*speed, 0);
 
 			initialParticles.push_back(temp);

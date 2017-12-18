@@ -30,6 +30,9 @@
     <ClCompile Include="BenchmarkVBO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="BenchmarkOcean.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="BenchmarkVBO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BenchmarkOcean.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
