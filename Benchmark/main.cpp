@@ -8,7 +8,7 @@ int main()
 {
 
 	srand(time(NULL));
-	int test = 2;
+	int test = 1;
 	if(test==0)
 	{
 		Benchmark m_benchmark;
@@ -20,7 +20,7 @@ int main()
 	{
 		BenchmarkVBO m_benchmark;
 		m_benchmark.initialsPartciles(1);
-		m_benchmark.init(1280, 1024);
+		m_benchmark.init(1920, 1080);
 		m_benchmark.initBuffers();
 		m_benchmark.launchLoop();
 	}

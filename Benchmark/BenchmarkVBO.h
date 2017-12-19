@@ -24,18 +24,24 @@ using namespace std;
 //GENERATE HEIGHTMAP BENCHMARK
 class BenchmarkVBO
 {
+	
 	GLFWwindow *window;
 	mat4 ProjectionMatrix;
 	mat4 ViewMatrix;
-	GLuint DefaultFrameBuffer=1;
+	GLuint DefaultFrameBuffer;
+	GLuint FinalFrameBuffer;
 	GLuint ColorTexture;
+	vector<GLuint> denseTextures;
+	int denseTexture = 0;
+	vector<vec4> emptyTexture;
+	GLuint DenseShader;
 	GLuint RenderShaders;
 	GLuint quad_vertexbuffer;
 	GLuint UV;
 	int width, height;
 	//Common buffers//
 	GLuint VBO;
-	
+	GLuint DebugBuffer;
 	GLuint PerFrameBuffer;
 	GLuint ConstantBuffer;
 	GLuint RenderProgram;
@@ -87,6 +93,7 @@ public:
 	BenchmarkVBO();
 	void draw(GLuint drawMode);
 	void drawRendererOutputs();
+	void densePostEffect();
 	void initialsPartciles(int mode = 0);
 	int init(int width = 800, int height = 600);
 	void initBuffers();
@@ -94,6 +101,20 @@ public:
 	void updateBuffers();
 	void updateParticlesComputeShader(double deltaTime);
 	void updateParticlesVertexShader(double deltaTime);
+	void gpuDebug(string Nazwa = "bez nazwy")
+	{
+		float debug[4];
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, DebugBuffer);
+		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4 * sizeof(float), &debug);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+		cout << Nazwa << endl;
+		cout << "\r debug.x:" << debug[0] << endl;
+		cout << "\r debug.y:" << debug[1] << endl;
+		cout << "\r debug.z:" << debug[2] << endl;
+		cout << "\r debug.w:" << debug[3] << endl;
+
+
+	}
 	~BenchmarkVBO();
 };
 

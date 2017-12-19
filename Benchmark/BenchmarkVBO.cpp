@@ -49,6 +49,7 @@ int BenchmarkVBO::init(int _width, int _height)
 	camera.setSens(0.01f, 10.1f);
 
 	glEnable(GL_DEPTH_TEST);
+	//glDisable(GL_DEPTH_TEST);
 	//glEnable(GL_BLEND);
 	//glBlendFunc(GL_ONE, GL_ONE);
 	return 1;
@@ -100,6 +101,15 @@ void BenchmarkVBO::initBuffers()
 	};
 	VertexVelocityUpdate = LoadShaders(VertexVSource);
 
+	ShaderInfo  DenseSource[] = {
+		{ GL_COMPUTE_SHADER, "PostEffects\\Dense.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	DenseShader = LoadShaders(DenseSource);
+
 	for (int i = 0; i < count; i++)
 	{
 		indexes.push_back(i);
@@ -109,9 +119,9 @@ void BenchmarkVBO::initBuffers()
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(float), indexes.data(), GL_DYNAMIC_COPY);
 	
 	vector<vec2> _UV;
-	for (int i = 0; i < height; i++)
+	for (int i = 0; i < width; i++)
 	{
-		for (int j = 0; j < width; j++)
+		for (int j = 0; j < height; j++)
 		{
 			_UV.push_back(vec2(i, j));
 		}
@@ -158,13 +168,28 @@ void BenchmarkVBO::initBuffers()
 	
 	glGenFramebuffers(1, &DefaultFrameBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, DefaultFrameBuffer);
+	
 
+	for (int i = 0; i < height*width; i++)
+	{
+		emptyTexture.push_back(vec4(0, 0, 0, 0));
+	}
+	for (int i = 0; i < 2; i++)
+	{
+		GLuint texture;
+		glGenTextures(1, &texture);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, emptyTexture.data());
+		glGenerateMipmap(GL_TEXTURE_2D);
+		denseTextures.push_back(texture);
+	}
 	// - Color 
 	glGenTextures(1, &ColorTexture);
 	glBindTexture(GL_TEXTURE_2D, ColorTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ColorTexture, 0);
 
@@ -196,6 +221,17 @@ void BenchmarkVBO::initBuffers()
 		{ GL_NONE, NULL }
 	};
 	RenderShaders = LoadShaders(shadersExpRender);
+
+
+	glGenFramebuffers(1, &FinalFrameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, FinalFrameBuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, NULL, 0);
+
+	glGenBuffers(1, &DebugBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, DebugBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(vec4), NULL, GL_DYNAMIC_COPY);
+	vec4 *debug = (vec4 *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(vec4), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
 void BenchmarkVBO::launchLoop()
 {
@@ -245,14 +281,13 @@ void BenchmarkVBO::launchLoop()
 		}
 		if (test == Test::ComputeTest)
 		{
-		//	glEnable(GL_DEPTH_TEST);
 			updateParticlesComputeShader(deltaTime);
 		}
 		if (test == Test::CPUTest)
 		{
 		}
-
 		draw(drawMode);
+		densePostEffect();
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 //		glClear(GL_DEPTH_BUFFER_BIT);
@@ -335,11 +370,28 @@ void BenchmarkVBO::updateParticlesVertexShader(double deltaTime)
 }
 void BenchmarkVBO::draw(GLuint drawMode)
 {
+	if (denseTexture == 1)
+	{
+		denseTexture = 0;
+	}
+	else if (denseTexture == 0)
+	{
+		denseTexture = 1;
+	}
+	denseTexture = 0;
+	glBindTexture(GL_TEXTURE_2D, denseTextures.at(0));
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, emptyTexture.data());
+
 	glPointSize(1);
+	glBindImageTexture(0, denseTextures.at(0), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 	glUseProgram(RenderProgram);
+	glUniform1i(glGetUniformLocation(RenderProgram, "denseTexture"), 0);
+	glUniform1i(glGetUniformLocation(RenderProgram, "height"),height);
+	glUniform1i(glGetUniformLocation(RenderProgram, "width"), width);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ParticlesBuffer);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ConstantBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, DebugBuffer);
 
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -355,13 +407,17 @@ void BenchmarkVBO::draw(GLuint drawMode)
 
 	glDrawArrays(GL_POINTS, 0, count);
 	glDisableVertexAttribArray(0);
+///	gpuDebug("gl_Position");
 }
 void BenchmarkVBO::drawRendererOutputs()
 {
 	glUseProgram(RenderShaders);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, ColorTexture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, denseTextures.at(1));
 	glUniform1i(glGetUniformLocation(RenderShaders, "Color"), 0);
+	glUniform1i(glGetUniformLocation(RenderShaders, "denseTexture"), 1);
 	glEnableVertexAttribArray(11);
 	glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
 	glVertexAttribPointer(
@@ -376,6 +432,21 @@ void BenchmarkVBO::drawRendererOutputs()
 	// Draw the triangles !
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glDisableVertexAttribArray(11);
+}
+void BenchmarkVBO::densePostEffect()
+{
+	glBindImageTexture(0, denseTextures.at(0), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	glBindTexture(GL_TEXTURE_2D, denseTextures.at(1));
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, emptyTexture.data());
+	glBindImageTexture(1, denseTextures.at(1), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, DebugBuffer);
+	glUseProgram(DenseShader);
+	glUniform1i(glGetUniformLocation(DenseShader, "denseTexture"), 0);
+	glUniform1i(glGetUniformLocation(DenseShader, "outputDenseTexture"), 1);
+	glDispatchCompute(width, height, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 void BenchmarkVBO::initialsPartciles(int mode)
 {
