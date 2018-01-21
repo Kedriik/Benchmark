@@ -2,8 +2,14 @@
 #include "BenchmarkVBO.h"
 
 
-BenchmarkVBO::BenchmarkVBO()
+BenchmarkVBO::BenchmarkVBO(int _count, int _test, int _postEffect)
 {
+	count = _count;
+	if (test == 0) test = Test::ComputeTest;
+	if (test == 1) test = Test::VertexTest;
+
+	if (_postEffect) postEffect = _postEffect;
+	
 }
 BenchmarkVBO::~BenchmarkVBO()
 {
@@ -110,6 +116,15 @@ void BenchmarkVBO::initBuffers()
 	};
 	DenseShader = LoadShaders(DenseSource);
 
+	ShaderInfo  FillingSource[] = {
+		{ GL_COMPUTE_SHADER, "VBOBenchmarkCommons\\Filling.shader" },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL },
+		{ GL_NONE, NULL }
+	};
+	FillingShader = LoadShaders(FillingSource);
+
 	for (int i = 0; i < count; i++)
 	{
 		indexes.push_back(i);
@@ -148,19 +163,22 @@ void BenchmarkVBO::initBuffers()
 	int size = count;
 	
 
-
+	
 	glGenBuffers(1, &ParticlesBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ParticlesBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, count*sizeof(struct Particle), NULL, GL_DYNAMIC_COPY);
-	particles = (struct Particle *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, count*sizeof(struct Particle), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-	for (int i=0 ; i < count; i++)
+	if(gpuFilling==false)
 	{
-		particles[i].acceleration = initialParticles.at(i).acceleration;
-		particles[i].density = initialParticles.at(i).density;
-		particles[i].mass = initialParticles.at(i).mass;
-		particles[i].velocity = initialParticles.at(i).velocity;
+		particles = (struct Particle *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, count*sizeof(struct Particle), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+		for (int i=0 ; i < count; i++)
+		{
+			particles[i].acceleration = initialParticles.at(i).acceleration;
+			particles[i].density = initialParticles.at(i).density;
+			particles[i].mass = initialParticles.at(i).mass;
+			particles[i].velocity = initialParticles.at(i).velocity;
+		}
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 	}
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, VBO);
@@ -233,7 +251,7 @@ void BenchmarkVBO::initBuffers()
 	vec4 *debug = (vec4 *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(vec4), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
-void BenchmarkVBO::launchLoop()
+double BenchmarkVBO::launchLoop()
 {
 	loopTotalTime = 0;
 	double deltaTime = 0;
@@ -287,7 +305,9 @@ void BenchmarkVBO::launchLoop()
 		{
 		}
 		draw(drawMode);
+		if(postEffect==1)
 		densePostEffect();
+
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 //		glClear(GL_DEPTH_BUFFER_BIT);
@@ -296,9 +316,14 @@ void BenchmarkVBO::launchLoop()
 		lastTime = currentTime;
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-
+		frames++;
 	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-		glfwWindowShouldClose(window) == 0);
+		glfwWindowShouldClose(window) == 0 && loopTotalTime<testTime);
+	glfwDestroyWindow(window);
+	double result = frames / loopTotalTime;
+	loopTotalTime = 0;
+	frames = 0;
+	return result;
 }
 void BenchmarkVBO::updateBuffers()
 {
@@ -318,12 +343,12 @@ void BenchmarkVBO::updateParticlesComputeShader(double deltaTime)
 	glUseProgram(ComputeVelocityUpdate);
 	glUniform1f(glGetUniformLocation(ComputeVelocityUpdate, "deltaTime"), deltaTime);
 	glUniform1i(glGetUniformLocation(ComputeVelocityUpdate, "count"), count);
-	glDispatchCompute(1, count / 1024, 1);
+	glDispatchCompute(1, count / 1024+1, 1);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 	glUseProgram(ComputePositionUpdate);
 	glUniform1f(glGetUniformLocation(ComputePositionUpdate, "deltaTime"), deltaTime);
-	glDispatchCompute(1, count / 1024, 1);
+	glDispatchCompute(1, count / 1024+1, 1);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 void BenchmarkVBO::updateParticlesVertexShader(double deltaTime)
@@ -656,8 +681,46 @@ void BenchmarkVBO::initialsPartciles(int mode)
 				particlesPositions.at(i) += vec4(-10, 0, 0, 0);
 				initialParticles.at(i).velocity += vec4(0.1, 0, 0, 1);
 			}
-		
+	}
+	if (mode == 4)
+	{
+		int factor = 10;
+		for (int i = 0; i < count / factor; i++)
+		{
+			particlesPositions.push_back(float(rand() % 10) / 10.0f*normalize(vec4(1000 - rand() % 2000, 1000 - rand() % 2000, 1000 - rand() % 2000, 1)));
+		}
 
-		
+		for (int i = 0; i < count / factor; i++)
+		{
+			Particle temp;
+			temp.acceleration = vec4(0.0);
+			temp.density = 1;
+			temp.index = -1;
+			temp.mass = 1;
+			temp.velocity = vec4(0.0);
+			initialParticles.push_back(temp);
+		}
+
+		float mass = float(count) / float(factor);
+		for (int i = count / factor; i < count; i++)
+		{
+			particlesPositions.push_back((1 + (float(rand() % 100) / 10.0f))*normalize(vec4(1000 - rand() % 2000, 0, 1000 - rand() % 2000, 1)));
+		}
+
+		for (int i = count / factor; i < count; i++)
+		{
+			Particle temp;
+			temp.acceleration = vec4(0.0);
+			temp.density = 1;
+			temp.index = -1;
+			temp.mass = 1;
+			float r = length(particlesPositions.at(i));
+			vec3 dir = cross(normalize(particlesPositions.at(i).xyz()), vec3(0, 1, 0));
+			float speed = 0.05*sqrt(0.1f*mass / sqrt(r));
+			temp.velocity = vec4(dir*speed, 0);
+
+			initialParticles.push_back(temp);
+		}
+
 	}
 }

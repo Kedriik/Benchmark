@@ -85,7 +85,7 @@ void BenchmarkOcean::polygonise()
 	glUseProgram(Polygonizator);
 	glUniform1i(glGetUniformLocation(Polygonizator, "HeightMap"), 0);
 	glUniform1i(glGetUniformLocation(Polygonizator, "heightMapSize"), heightMapSize);
-	glDispatchCompute(heightMapSize, heightMapSize, 1);
+	glDispatchCompute(heightMapSize/10, heightMapSize/10, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
@@ -118,16 +118,30 @@ void BenchmarkOcean::polygoniseVertex()
 
 BenchmarkOcean::~BenchmarkOcean()
 {
+
+	GLuint buffersToDelete[11] = {
+		VBO,
+		HeightMap,
+		PerFrameBuffer,
+		ConstantBuffer,
+		ElementBuffer,
+		RenderProgram,
+		Polygonizator,
+		VertexPolygonizator,
+		ComputeShader,
+		VertexShader,
+		heightMapIndexBuffer };
+	glDeleteBuffers(11, buffersToDelete);
 }
 
-int BenchmarkOcean::init(int width, int height)
+int BenchmarkOcean::init(int width, int height, int _test , int _heightMapSize)
 {
 	if (!glfwInit())
 	{
 		fprintf(stderr, "Failed to initialize GLFW\n");
 		return -1;
 	}
-	std::cout << "GLFW init completed" << std::endl;
+//	std::cout << "GLFW init completed" << std::endl;
 
 
 
@@ -136,7 +150,6 @@ int BenchmarkOcean::init(int width, int height)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
-	//	glfwWindowHint(GL_CONTEXT_FLAGS,GL_CONTEXT_FLAG_DEBUG_BIT);
 
 
 
@@ -149,7 +162,7 @@ int BenchmarkOcean::init(int width, int height)
 		fprintf(stderr, "Failed to initialize GLEW\n");
 		return -1;
 	}
-	std::cout << "GLEW init completed" << std::endl;
+//	std::cout << "GLEW init completed" << std::endl;
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 	ProjectionMatrix = glm::infinitePerspective(45.0f, float(width) / float(height), 0.01f);
 
@@ -159,6 +172,12 @@ int BenchmarkOcean::init(int width, int height)
 	camera.setSens(0.01f, 0.1f);
 
 	glEnable(GL_DEPTH_TEST);
+	if (_test == 0)
+		test = Compute;
+	if (_test == 1)
+		test = Vertex;
+
+	heightMapSize = _heightMapSize;
 	return 1;
 }
 
@@ -253,7 +272,7 @@ void BenchmarkOcean::initBuffers()
 	constantData->ProjectionMatrix = ProjectionMatrix;
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-	int indexSize = 6 * (heightMapSize)*(heightMapSize);
+	int indexSize = 7 * (heightMapSize)*(heightMapSize);
 	int size = heightMapSize*heightMapSize;
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, VBO);
@@ -273,7 +292,7 @@ void BenchmarkOcean::initBuffers()
 
 }
 
-void BenchmarkOcean::launchLoop()
+double BenchmarkOcean::launchLoop()
 {
 	loopTotalTime = 0;
 	double deltaTime = 0;
@@ -330,9 +349,15 @@ void BenchmarkOcean::launchLoop()
 		lastTime = currentTime;
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-
+		frames++;
 	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-		glfwWindowShouldClose(window) == 0);
+		glfwWindowShouldClose(window) == 0 && loopTotalTime<testTime);
+
+	glfwDestroyWindow(window);
+	double result = frames / loopTotalTime;
+	loopTotalTime = 0;
+	frames = 0;
+	return result;
 }
 
 void BenchmarkOcean::updateBuffers()

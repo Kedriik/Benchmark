@@ -245,8 +245,8 @@ void main (void)
      
       int  WGidY=int(gl_GlobalInvocationID.y);
       int  WGidX=int(gl_GlobalInvocationID.x);
-      float X=float((WGidX-float(heightMapSize-1)/2.0f)/float(heightMapSize-1));
-      float Z=float((WGidY-float(heightMapSize-1)/2.0f)/float(heightMapSize-1));
+      float X=float((float(WGidX)-float(heightMapSize-1.0f)/2.0f)/(float(heightMapSize)-1.0f));
+      float Z=float((float(WGidY)-float(heightMapSize-1.0f)/2.0f)/(float(heightMapSize)-1.0f));
       vec4 vectorToStore=vec4(X, 0,Z,1);
       float f=2;
       float A=0.1;
@@ -257,7 +257,6 @@ void main (void)
         A/=2.0;
         f*=2.0;
       }
-   //   h=4;
       vectorToStore.y=h;
       imageStore(HeightMap, ivec2(WGidX,WGidY),vectorToStore);
 }

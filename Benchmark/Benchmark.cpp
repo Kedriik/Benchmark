@@ -50,7 +50,7 @@ void Benchmark::polygonise()
 	glUseProgram(Polygonizator);
 	glUniform1i(glGetUniformLocation(Polygonizator, "HeightMap"), 0);
 	glUniform1i(glGetUniformLocation(Polygonizator, "heightMapSize"), heightMapSize);
-	glDispatchCompute(heightMapSize, heightMapSize, 1);
+	glDispatchCompute((heightMapSize/10), (heightMapSize/10), 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
@@ -83,16 +83,30 @@ void Benchmark::polygoniseVertex()
 
 Benchmark::~Benchmark()
 {
+	
+	GLuint buffersToDelete[11] = {
+	 VBO,
+	 HeightMap,
+	 PerFrameBuffer,
+	 ConstantBuffer,
+	 ElementBuffer,
+	 RenderProgram,
+	 Polygonizator,
+	 VertexPolygonizator,
+	 ComputeShader,
+	 VertexShader,
+	 heightMapIndexBuffer };
+	glDeleteBuffers(11, buffersToDelete);
 }
 
-int Benchmark::init(int width , int height)
+int Benchmark::init(int width , int height, int _test, int _heightMapSize)
 {
 	if (!glfwInit())
 	{
 		fprintf(stderr, "Failed to initialize GLFW\n");
 		return -1;
 	}
-	std::cout << "GLFW init completed" << std::endl;
+	//std::cout << "GLFW init completed" << std::endl;
 
 
 
@@ -114,7 +128,7 @@ int Benchmark::init(int width , int height)
 		fprintf(stderr, "Failed to initialize GLEW\n");
 		return -1;
 	}
-	std::cout << "GLEW init completed" << std::endl;
+//	std::cout << "GLEW init completed" << std::endl;
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 	ProjectionMatrix = glm::infinitePerspective(45.0f, float(width) / float(height), 0.01f);
 
@@ -124,6 +138,12 @@ int Benchmark::init(int width , int height)
 	camera.setSens(0.01f, 0.1f);
 
 	glEnable(GL_DEPTH_TEST);
+	if (_test == 0)
+		test = Compute;
+	if (_test == 1)
+		test = Vertex;
+
+	heightMapSize = _heightMapSize;
 	return 1;
 }
 
@@ -200,7 +220,7 @@ void Benchmark::initBuffers()
 	constantData->ProjectionMatrix = ProjectionMatrix;
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-	int indexSize=6* (heightMapSize )*(heightMapSize );
+	int indexSize=7*(heightMapSize )*(heightMapSize );
 	int size = heightMapSize*heightMapSize;
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, VBO);
@@ -220,7 +240,7 @@ void Benchmark::initBuffers()
 
 }
 
-void Benchmark::launchLoop()
+double Benchmark::launchLoop()
 {
 	loopTotalTime = 0;
 	double deltaTime = 0;
@@ -229,12 +249,7 @@ void Benchmark::launchLoop()
 	camera.setUp(vec3(1, 0, 0));
 	camera.setForward(vec3(0, -1, 0));
 	ViewMatrix = camera.cameraPositionKeyboard(0);
-//	generateHeightmapComputeShader();
-//	generateHeightmapVertexShader();
 	vector<vec4> hp;
-	
-//	polygonise();
-	
 	GLuint drawMode = GL_FILL;
 	do
 	{
@@ -261,6 +276,7 @@ void Benchmark::launchLoop()
 		if (test == Test::ComputeTest)
 		{
 			generateHeightmapComputeShader();
+		//	polygoniseVertex();
 			polygonise();
 		}
 		if (test == Test::CPUTest)
@@ -274,13 +290,20 @@ void Benchmark::launchLoop()
 		}
 		
 		draw(drawMode);
+		
 		///////////////
 		lastTime = currentTime;
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		frames++;
 
 	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-		glfwWindowShouldClose(window) == 0);
+		glfwWindowShouldClose(window) == 0 && loopTotalTime<testTime);
+	glfwDestroyWindow(window);
+	double result= frames / loopTotalTime;
+	loopTotalTime = 0;
+	frames = 0;
+	return result;
 }
 
 void Benchmark::updateBuffers()

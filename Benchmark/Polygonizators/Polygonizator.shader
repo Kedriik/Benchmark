@@ -11,16 +11,14 @@ layout(std430, binding = 2) buffer IndexBuffer
 };
 
 layout (rgba32f)  uniform image2D HeightMap;
-layout( local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout( local_size_x = 10, local_size_y = 10, local_size_z = 1) in;
 uniform int heightMapSize;
 
 void main(void)
 {
     uint  textureSize=uint(heightMapSize);
-    uint  WGidY=uint(gl_GlobalInvocationID.y);//(gl_WorkGroupID.y);
-    uint  WGidX=uint(gl_GlobalInvocationID.x);//(gl_WorkGroupID.x);
-       WGidY=uint(gl_WorkGroupID.y);
-      WGidX=uint(gl_WorkGroupID.x);
+    int  WGidY=int(gl_GlobalInvocationID.y);
+    int  WGidX=int(gl_GlobalInvocationID.x);
     uint mapVBOOffset=0;//index*textureSize*textureSize;
     uint indexOffset=0;//6*index*textureSize*textureSize;
         VBO[WGidY*textureSize+WGidX+mapVBOOffset]=imageLoad(HeightMap, ivec2(WGidX, WGidY));
@@ -32,7 +30,7 @@ void main(void)
     if(WGidX==textureSize-1 || WGidY==textureSize-1)
     return;
    
-    uint localIndex = 6*(WGidY*textureSize+WGidX)+indexOffset;
+    uint localIndex = uint(6*(WGidY*textureSize+WGidX)+indexOffset);
     Index[localIndex+0]=uint((WGidY+1)*textureSize+WGidX  +mapVBOOffset);
     Index[localIndex+1]=WGidY*textureSize    +WGidX+1+mapVBOOffset;
     Index[localIndex+2]=WGidY*textureSize    +WGidX  +mapVBOOffset;

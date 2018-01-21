@@ -35,6 +35,7 @@ class BenchmarkVBO
 	int denseTexture = 0;
 	vector<vec4> emptyTexture;
 	GLuint DenseShader;
+	GLuint FillingShader;
 	GLuint RenderShaders;
 	GLuint quad_vertexbuffer;
 	GLuint UV;
@@ -77,7 +78,11 @@ class BenchmarkVBO
 		mat4 ProjectionMatrix;
 	} *constantData;
 	double loopTotalTime = 0;
-	int count = 10240;
+	int count;
+	int postEffect;
+	bool gpuFilling = false;
+	double testTime = 65;
+	double frames = 0;
 	Camera camera;
 	enum Test
 	{
@@ -90,14 +95,14 @@ class BenchmarkVBO
 #define CPU Test::CPUTest
 	Test test = Vertex;
 public:
-	BenchmarkVBO();
+	BenchmarkVBO(int _count = 5120, int test = 0, int postEffect = 0);
 	void draw(GLuint drawMode);
 	void drawRendererOutputs();
 	void densePostEffect();
 	void initialsPartciles(int mode = 0);
 	int init(int width = 800, int height = 600);
 	void initBuffers();
-	void launchLoop();
+	double launchLoop();
 	void updateBuffers();
 	void updateParticlesComputeShader(double deltaTime);
 	void updateParticlesVertexShader(double deltaTime);

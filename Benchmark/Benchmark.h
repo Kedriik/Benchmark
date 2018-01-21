@@ -58,8 +58,10 @@ class Benchmark
 		mat4 ProjectionMatrix;
 	} *constantData;
 	double loopTotalTime = 0;
-	int heightMapSize = 100;
-	int octaves = 10;
+	double testTime = 65;
+	double frames = 0;
+	int heightMapSize = 10;
+	int octaves =64;
 	Camera camera;
 	enum Test
 	{
@@ -70,16 +72,20 @@ class Benchmark
 #define Compute Test::ComputeTest
 #define Vertex Test::VertexTest
 #define CPU Test::CPUTest
-	Test test = CPU;
+	Test test;// = Compute;
 public:
 	Benchmark();
 	void draw(GLuint drawMode);
-	int init(int width = 800, int height = 600);
+	int init(int width = 800, int height = 600, int test = 0, int heightMapSize=100);
 	void initBuffers();
-	void launchLoop();
+	double launchLoop();
 	void updateBuffers();
 	void generateHeightmapComputeShader();
 	void generateHeightmapVertexShader();
+	void setOctaves(int _octaves)
+	{
+		octaves = _octaves;
+	};
 	void generateHeigtmapCpu();
 	void polygonise();
 	void polygoniseVertex();

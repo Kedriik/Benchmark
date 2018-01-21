@@ -22,11 +22,11 @@ float denseFilter()
 		{
 			vec2 v=vec2(i,j);
 			float dist=length(v);
-			float factor=5;
+			float factor=15;
 			_dense=_dense+imageLoad(denseTexture, ivec2(UV+ivec2(i,j))).y*(factor-dist);
 		}
 	}
-	return clamp(_dense, 0,100)/100.0;
+	return clamp(_dense, 0,255);
 }
 
 void main()
@@ -34,6 +34,8 @@ void main()
 	ivec2 UV=ivec2(X,Y);
 	float currentDense=imageLoad(denseTexture, UV).y;
 	float dense=denseFilter();
+	vec4 color=vec4(1,clamp(dense, 0,255.0f)/255.0f,clamp(dense, 0,255.0f)/255.0f,1);
+	dense/=255;
 //	debug.x=dense;
-	imageStore(outputDenseTexture, UV, vec4(dense,dense,dense,1));
+	imageStore(outputDenseTexture, UV, color*dense);
 }

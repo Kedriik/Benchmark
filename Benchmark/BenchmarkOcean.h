@@ -62,6 +62,8 @@ class BenchmarkOcean
 	double loopTotalTime = 0;
 	int heightMapSize = 100;
 	int octaves = 10;
+	double frames = 0;
+	double testTime = 65;
 	Camera camera;
 	enum Test
 	{
@@ -77,9 +79,13 @@ public:
 	BenchmarkOcean();
 	void drawAndUpdate(GLuint drawMode);
 	void draw(GLuint drawMode);
-	int init(int width = 800, int height = 600);
+	int init(int width = 800, int height = 600, int test=0, int heightMapSize=100);
 	void initBuffers();
-	void launchLoop();
+	double launchLoop();
+	void setOctaves(int _octaves)
+	{
+		octaves = _octaves;
+	};
 	void updateBuffers();
 	void generateHeightmapComputeShader();
 	void generateHeightmapVertexShader();

@@ -245,8 +245,8 @@ void main()
       int  WGidX=int(heightMapIndex.x);
       //double X;
       //double Z;
-      float X=float((WGidX-(heightMapSize-1)/2.0f)/float(heightMapSize-1));
-      float Z=float((WGidY-(heightMapSize-1)/2.0f)/float(heightMapSize-1));
+      float X=float((float(WGidX)-float(heightMapSize-1.0f)/2.0f)/float(heightMapSize-1.0f));
+      float Z=float((float(WGidY)-float(heightMapSize-1.0f)/2.0f)/float(heightMapSize-1.0f));
       vec4 vectorToStore=vec4(X, 0,Z,1);
       float f=2;
       float A=0.1;

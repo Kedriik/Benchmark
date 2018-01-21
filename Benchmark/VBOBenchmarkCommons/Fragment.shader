@@ -18,7 +18,8 @@ void main()
 	//color=vec4(0.5f+0.5f*clamp(dense, 0,255.0f)/255.0f,clamp(dense, 0,255.0f)/255.0f,clamp(dense, 0,255.0f)/255.0f,clamp(dense, 0,blend)/blend);
 	
 	//color=vec4(1,clamp(dense, 0,255.0f)/255.0f,clamp(dense, 0,255.0f)/255.0f,1);
-	color=vec4(1,clamp(dense, 0,255.0f)/255.0f,clamp(dense, 0,255.0f)/255.0f,1);
+	//color=vec4(clamp(dense, 0,255.0f)/255.0f,clamp(dense, 0,255.0f)/255.0f,clamp(dense, 0,255.0f)/255.0f,1);
+	color=vec4(1.0);
 	vec2 UV=gl_FragCoord.xy;
 	float currentDense=imageLoad(denseTexture, ivec2(UV)).y;
 	currentDense+=1;
