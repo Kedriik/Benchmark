@@ -240,21 +240,21 @@ float snoise(vec4 v){
                + dot(m1*m1, vec2( dot( p3, x3 ), dot( p4, x4 ) ) ) ) ;
 
 }
-	out float h;
-	void main()
-	{
-		vec4 position=vec4(vertexPosition_modelspace.xyz,1);
-		float _h=0;
-		float f=2;
-      float A=0.1;
-      for(int i=0;i<octaves;i++)
-      {
-        _h+=A*cnoise(vec4(f*position.xyz,time));
-        A/=2.0;
-        f*=2.0;
-      }
-      position.y=_h;
-		h=position.y;
-		gl_Position =ProjectionMatrix*ViewMatrix*position;
+out float h;
+void main()
+{
+  vec4 position=vec4(vertexPosition_modelspace.xyz,1);
+  float _h=0;
+  float f=2;
+  float A=0.1;
+  for(int i=0;i<octaves;i++)
+  {
+    _h+=A*cnoise(vec4(f*position.xyz,time));
+    A/=2.0;
+    f*=2.0;
+  }
+  position.y=_h;
+  h=_h;
+  gl_Position =ProjectionMatrix*ViewMatrix*position;
 
 	}

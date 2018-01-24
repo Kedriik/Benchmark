@@ -5,8 +5,8 @@
 BenchmarkVBO::BenchmarkVBO(int _count, int _test, int _postEffect)
 {
 	count = _count;
-	if (test == 0) test = Test::ComputeTest;
-	if (test == 1) test = Test::VertexTest;
+	if (_test == 0) test = Test::ComputeTest;
+	if (_test == 1) test = Test::VertexTest;
 
 	if (_postEffect) postEffect = _postEffect;
 	

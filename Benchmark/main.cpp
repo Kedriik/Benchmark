@@ -7,7 +7,7 @@ using namespace glm;
 int main()
 {
 	srand(time(NULL));
-	int test = 1;
+	int test = 2;
 	if (test == 0)
 	{
 		int octaves = 2;
@@ -15,7 +15,7 @@ int main()
 		for(int i=0;i<6;i++)
 		{
 			Benchmark m_benchmark;
-			m_benchmark.init(1280,1024,0,1000);
+			m_benchmark.init(1280,1024,0,100);
 			m_benchmark.initBuffers();
 			m_benchmark.setOctaves(octaves);
 			cout << "Average FPS for "<<octaves<<"octaves is " << m_benchmark.launchLoop() << endl;
@@ -27,7 +27,7 @@ int main()
 		for (int i = 0; i<6; i++)
 		{
 			Benchmark m_benchmark;
-			m_benchmark.init(1280, 1024, 1, 1000);
+			m_benchmark.init(1280, 1024, 1, 100);
 			m_benchmark.initBuffers();
 			m_benchmark.setOctaves(octaves);
 			cout << "Average FPS for " << octaves << "octaves is " << m_benchmark.launchLoop() << endl;
@@ -53,7 +53,7 @@ int main()
 		cout << "post effect?" << endl;
 		cin >> postEffect;*/
 
-		BenchmarkVBO m_benchmark(10240, 1, 0);
+		BenchmarkVBO m_benchmark(10240, 1,1);
 		m_benchmark.initialsPartciles(1);
 		m_benchmark.init(1280, 1024);
 		m_benchmark.initBuffers();

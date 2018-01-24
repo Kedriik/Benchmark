@@ -246,19 +246,18 @@ float snoise(vec4 v){
 }
 void main (void)
 { 
-     
-      int  WGidY=int(gl_GlobalInvocationID.y);
-      float f=2;
-      float A=0.1;
-      float h=0;
-      vec4 position=VBO[WGidY];
-      position.y=0;
-      for(int i=0;i<octaves;i++)
-      {
-        h+=A*cnoise(vec4(f*position.xyz,time));
-        A/=2.0;
-        f*=2.0;
-      }
-      position.y=h;
-      VBO[WGidY]=position;
+  int  WGidY=int(gl_GlobalInvocationID.y);
+  float f=2;
+  float A=0.1;
+  float h=0;
+  vec4 position=VBO[WGidY];
+  position.y=0;
+  for(int i=0;i<octaves;i++)
+  {
+    h+=A*cnoise(vec4(f*position.xyz,time));
+    A/=2.0;
+    f*=2.0;
+  }
+  position.y=h;
+  VBO[WGidY]=position;
 }

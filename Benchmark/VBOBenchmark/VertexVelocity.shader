@@ -42,7 +42,7 @@ void main(void)
           vec4 vector=VBO[i]-VBO[gid];
           vec4 dir=normalize(vector);
           float r=length(vector);
-          particles[gid].density+=100.0f*particles[i].mass/(r*r);
+          particles[gid].density+=200.0f*particles[i].mass/(r*r);
           if(r!=0)
             a+=G*particles[i].mass*dir/(r*r);
       }

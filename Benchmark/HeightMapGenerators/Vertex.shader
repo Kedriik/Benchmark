@@ -241,24 +241,22 @@ float snoise(vec4 v){
 }
 void main()
 {
-      int  WGidY=int(heightMapIndex.y);
-      int  WGidX=int(heightMapIndex.x);
-      //double X;
-      //double Z;
-      float X=float((float(WGidX)-float(heightMapSize-1.0f)/2.0f)/float(heightMapSize-1.0f));
-      float Z=float((float(WGidY)-float(heightMapSize-1.0f)/2.0f)/float(heightMapSize-1.0f));
-      vec4 vectorToStore=vec4(X, 0,Z,1);
-      float f=2;
-      float A=0.1;
-      float h=0;
-      for(int i=0;i<octaves;i++)
-      {
-      	h+=A*cnoise(vec4(f*vectorToStore.xyz,time));
-      	A/=2.0;
-      	f*=2.0;
-      }
-    
-      vectorToStore.y=h;
-      imageStore(HeightMap, ivec2(WGidX,WGidY),vectorToStore);
-		gl_Position =vec4(0.0);
+  int  WGidY=int(heightMapIndex.y);
+  int  WGidX=int(heightMapIndex.x);
+  float X=float((float(WGidX)-float(heightMapSize-1.0f)/2.0f)/float(heightMapSize-1.0f));
+  float Z=float((float(WGidY)-float(heightMapSize-1.0f)/2.0f)/float(heightMapSize-1.0f));
+  vec4 vectorToStore=vec4(X, 0,Z,1);
+  float f=2;
+  float A=0.1;
+  float h=0;
+  for(int i=0;i<octaves;i++)
+  {
+  	h+=A*cnoise(vec4(f*vectorToStore.xyz,time));
+  	A/=2.0;
+  	f*=2.0;
+  }
+
+  vectorToStore.y=h;
+  imageStore(HeightMap, ivec2(WGidX,WGidY),vectorToStore);
+  gl_Position =vec4(0.0);
 }

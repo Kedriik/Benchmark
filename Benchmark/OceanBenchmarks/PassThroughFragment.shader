@@ -3,6 +3,6 @@
 out vec4 color;
 void main()
 {
-	return;
-	color=vec4(0.0);
+return;
+color=vec4(0.0);
 }

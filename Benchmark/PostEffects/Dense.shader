@@ -6,8 +6,8 @@ layout( std430, binding=10 ) buffer DebugBuffer
 layout (rgba32f)  uniform image2D denseTexture;
 layout (rgba32f)  uniform image2D outputDenseTexture;
 layout( local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-	uint X=gl_WorkGroupID.x;
-	uint Y=gl_WorkGroupID.y;
+uint X=gl_WorkGroupID.x;
+uint Y=gl_WorkGroupID.y;
 float denseFilter()
 {
 	ivec2 UV=ivec2(X,Y);
@@ -36,6 +36,5 @@ void main()
 	float dense=denseFilter();
 	vec4 color=vec4(1,clamp(dense, 0,255.0f)/255.0f,clamp(dense, 0,255.0f)/255.0f,1);
 	dense/=255;
-//	debug.x=dense;
 	imageStore(outputDenseTexture, UV, color*dense);
 }
