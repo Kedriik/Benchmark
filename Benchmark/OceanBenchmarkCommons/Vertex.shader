@@ -4,6 +4,7 @@ layout(location = 0) in vec4 vertexPosition_modelspace;
 layout(std430, binding = 4) buffer PerFrame
 {
 	mat4 ViewMatrix;
+	mat4 ModelMatrix;
 	float time;
 	vec3 seed;
 };
@@ -15,7 +16,6 @@ layout(std430, binding = 5) buffer Constant
 out float h;
 void main()
 {
-	vec4 position=vec4(vertexPosition_modelspace.xyz,1);
-	h=position.y;
-	gl_Position =ProjectionMatrix*ViewMatrix*position;
+	h=vertexPosition_modelspace.y;
+	gl_Position =ProjectionMatrix*ViewMatrix*vec4(vertexPosition_modelspace.xyz,1);
 }

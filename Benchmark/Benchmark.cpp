@@ -142,6 +142,8 @@ int Benchmark::init(int width , int height, int _test, int _heightMapSize)
 		test = Compute;
 	if (_test == 1)
 		test = Vertex;
+	if (_test == 2)
+		test = CPU;
 
 	heightMapSize = _heightMapSize;
 	return 1;
@@ -276,17 +278,11 @@ double Benchmark::launchLoop()
 		if (test == Test::ComputeTest)
 		{
 			generateHeightmapComputeShader();
-		//	polygoniseVertex();
 			polygonise();
 		}
 		if (test == Test::CPUTest)
 		{
-			
-			hp.clear();
-			HeightMapGenerator::generateHeightMap(&hp, heightMapSize, loopTotalTime, octaves);
-			glBindTexture(GL_TEXTURE_2D, HeightMap);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, heightMapSize, heightMapSize, GL_RGBA, GL_FLOAT, hp.data());
-			polygoniseVertex();
+
 		}
 		
 		draw(drawMode);

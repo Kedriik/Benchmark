@@ -81,7 +81,7 @@ class BenchmarkVBO
 	int count;
 	int postEffect;
 	bool gpuFilling = false;
-	double testTime = 65;
+	double testTime = 35;
 	double frames = 0;
 	Camera camera;
 	enum Test

@@ -42,26 +42,14 @@ void BenchmarkOcean::drawAndUpdate(GLuint drawMode)
 
 void BenchmarkOcean::draw(GLuint drawMode)
 {
-
 	glUseProgram(RenderProgram);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, PerFrameBuffer);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ConstantBuffer);
-	//
-	//glEnableVertexAttribArray(2);
-	//glBindBuffer(GL_ARRAY_BUFFER, NormalBuffer);
-	//glVertexAttribPointer(
-	//	2,                  // attribute. No particular reason for 2, but must match the layout in the shader.
-	//	4,                  // size
-	//	GL_FLOAT,           // type
-	//	GL_FALSE,           // normalized?
-	//	0,                  // stride
-	//	(void*)0            // array buffer offset
-	//);
-	//Draw array
+
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glVertexAttribPointer(
-		0,                  // attribute. No particular reason for 3, but must match the layout in the shader.
+		0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
 		4,                  // size
 		GL_FLOAT,           // type
 		GL_FALSE,           // normalized?
@@ -78,10 +66,7 @@ void BenchmarkOcean::polygonise()
 {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, VBO);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, IndexBuffer);
-
-
 	glBindImageTexture(0, HeightMap, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-
 	glUseProgram(Polygonizator);
 	glUniform1i(glGetUniformLocation(Polygonizator, "HeightMap"), 0);
 	glUniform1i(glGetUniformLocation(Polygonizator, "heightMapSize"), heightMapSize);
@@ -365,6 +350,7 @@ void BenchmarkOcean::updateBuffers()
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, PerFrameBuffer);
 	perFrameData = (struct perFrameData *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(struct perFrameData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	perFrameData->ViewMatrix = ViewMatrix;
+	perFrameData->ModelMatrix = mat4(1.0f);
 	perFrameData->time = loopTotalTime;
 	perFrameData->seed = vec3(0.0f);
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);

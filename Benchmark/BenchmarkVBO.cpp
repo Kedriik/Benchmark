@@ -161,15 +161,12 @@ void BenchmarkVBO::initBuffers()
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
 	int size = count;
-	
 
-	
 	glGenBuffers(1, &ParticlesBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ParticlesBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, count*sizeof(struct Particle), NULL, GL_DYNAMIC_COPY);
-	if(gpuFilling==false)
-	{
-		particles = (struct Particle *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, count*sizeof(struct Particle), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	particles = (struct Particle *) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, count*sizeof(struct Particle), 
+															   GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 		for (int i=0 ; i < count; i++)
 		{
 			particles[i].acceleration = initialParticles.at(i).acceleration;
@@ -177,8 +174,7 @@ void BenchmarkVBO::initBuffers()
 			particles[i].mass = initialParticles.at(i).mass;
 			particles[i].velocity = initialParticles.at(i).velocity;
 		}
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-	}
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, VBO);
@@ -310,7 +306,6 @@ double BenchmarkVBO::launchLoop()
 
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//		glClear(GL_DEPTH_BUFFER_BIT);
 		drawRendererOutputs();
 		///////////////
 		lastTime = currentTime;

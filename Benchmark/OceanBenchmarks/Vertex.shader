@@ -2,6 +2,7 @@
 layout(std430, binding = 4) buffer PerFrame
 {
 	mat4 ViewMatrix;
+  mat4 ModelMatrix;
 	float time;
 	vec3 seed;
 };

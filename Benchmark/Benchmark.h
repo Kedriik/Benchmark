@@ -58,7 +58,7 @@ class Benchmark
 		mat4 ProjectionMatrix;
 	} *constantData;
 	double loopTotalTime = 0;
-	double testTime = 65;
+	double testTime = 35;
 	double frames = 0;
 	int heightMapSize = 10;
 	int octaves =64;

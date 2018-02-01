@@ -51,6 +51,7 @@ class BenchmarkOcean
 	struct perFrameData
 	{
 		mat4 ViewMatrix;
+		mat4 ModelMatrix = mat4(1.0f);
 		float time;
 		vec3 seed;
 	} *perFrameData;
@@ -63,7 +64,7 @@ class BenchmarkOcean
 	int heightMapSize = 100;
 	int octaves = 10;
 	double frames = 0;
-	double testTime = 65;
+	double testTime = 35;
 	Camera camera;
 	enum Test
 	{
