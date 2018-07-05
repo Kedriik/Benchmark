@@ -8,7 +8,7 @@ using namespace glm;
 int main()
 {
 	srand(time(NULL));
-	int test = 5;
+	int test = 1;
 	if (test == 4)
 	{
 		Benchmark m_benchmark;
