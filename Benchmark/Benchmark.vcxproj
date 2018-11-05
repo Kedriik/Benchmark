@@ -76,7 +76,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)\LoadShaders\include;$(ProjectDir)\LoadShaders\include\GL3;$(ProjectDir)\LoadShaders\include\GL;$(ProjectDir)\glfw-3.2.1.bin.WIN64\include\GLFW;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\glew-2.0.0\lib\Release\x64;$(ProjectDir)\LoadShaders\lib;$(ProjectDir)\glfw-3.2.1.bin.WIN64\lib-vc2015;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)\LoadShaders\lib;$(ProjectDir)\glfw-3.2.1.bin.WIN64\lib-vc2015;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
